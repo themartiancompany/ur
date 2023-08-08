@@ -1,0 +1,96 @@
+---
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+stages:
+  - check
+  - build
+
+check:
+  before_script:
+    # NOTE: Install latest archlinux-keyring before upgrading system. In the
+    # future this should not be needed anymore when we can guarantee a valid
+    # keyring for longer:
+    # https://gitlab.archlinux.org/archlinux/archlinux-keyring/-/issues/4
+    - pacman -Sy --needed --noconfirm archlinux-keyring
+    - pacman --noconfirm -Syu --needed make shellcheck
+  script:
+    - make check
+  stage: check
+  interruptible: true
+
+.build:
+  artifacts:
+    reports:
+      metrics: output/metrics.txt
+  before_script:
+    - >
+      pacman -Sy --needed --noconfirm archlinux-keyring
+    
+    - >  
+      pacman -Syu --needed --noconfirm
+      arch-install-scripts
+      bash
+      dosfstools
+      e2fsprogs
+      erofs-utils
+      gnupg
+      grub
+      jq
+      libarchive
+      libisoburn
+      mtools
+      openssl
+      python-docutils
+      qemu-headless
+      squashfs-tools
+      zsync
+
+    - >
+      pacman -Syu --needed --noconfirm
+      asciidoctor
+      fakeroot
+      make
+      shellcheck
+      shfmt
+
+    # cryptsetup-sigfile
+    - >
+      pacman -Syu --needed --noconfirm
+      gcc
+      pkgconf
+  script:
+    - ./echo "TODO" #.gitlab/ci/build_pkg.sh ${BUILD_SCRIPT_ARGS}
+  stage: build
+  tags:
+    - vm
+
+build_short:
+  extends: .build
+  parallel:
+    matrix:
+      - BUILD_SCRIPT_ARGS: a_super_small_package
+  only:
+    refs:
+      - master
+      - merge_requests
+    changes:
+      - ur/*
+      - Makefile
+      - .gitlab-ci.yml
+  interruptible: true
+
+build_long:
+  extends: .build
+  parallel:
+    matrix:
+      - BUILD_SCRIPT_ARGS: a_very_small_package
+  only:
+    refs:
+      - master
+      - merge_requests
+    changes:
+      - ur/*
+      - Makefile
+      - .gitlab-ci.yml
+  interruptible: true
