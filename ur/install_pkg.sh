@@ -66,7 +66,7 @@ _get() {
 }
 
 _global_variables() {
-    file_list=""
+    pkg_list=""
     pacman_conf=""
     repo_name=""
     repo_publisher=""
@@ -200,16 +200,37 @@ _override_path() {
 }
 
 _set_overrides() {
-  
+   _override_path "pkg" \
+                  "list" \
+		  "packages.extra"
+   _override_path "pacman" \
+                  "conf" \
+		  "/etc/pacman.conf"
+   _set_override "repo" \
+	         "name" \
+                 "${app_name}"
+   _set_override "repo" \
+	         "publisher" \
+		 "${repo_name}"
+   if [[ -v override_quiet ]]; then
+     quiet="${override_quiet}"
+   elif [[ -z "${quiet}" ]]; then
+     quiet="y"
+   fi
+   [[ ! -v override_gpg_key ]] || \
+     gpg_key="${override_gpg_key}"
+   [[ ! -v override_gpg_sender ]] || \
+     gpg_sender="${override_gpg_sender}"
+   [[ ! -v override_gpg_home ]] || \
+     gpg_home="${override_gpg_home}"
 }
 
-while getopts 'f:C:L:P:D:w:g:G:H:vh?' arg; do
+while getopts 'f:C:L:P:w:g:G:H:vh?' arg; do
     case "${arg}" in
-        f) override_file_list="${OPTARG}" ;;
+        f) override_pkg_list="${OPTARG}" ;;
         C) override_pacman_conf="${OPTARG}" ;;
         L) override_repo_name="${OPTARG}" ;;
         P) override_repo_publisher="${OPTARG}" ;;
-        D) override_install_dir="${OPTARG}" ;;
         w) override_work_dir="${OPTARG}" ;;
         g) override_gpg_key="${OPTARG}" ;;
         G) override_gpg_sender="${OPTARG}" ;;
