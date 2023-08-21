@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Generate an ephemeral PGP key for signing the rootfs image
 _generate_ephemeral_pgp_key() {

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 _setup_user() {
   local _user="${1}"
