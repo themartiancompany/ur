@@ -2,22 +2,33 @@
 
 unset mode
 
+_retrieve_pkgbuild_repo() {
+    local _pkgname="${1}" \
+	  _source="${2}" \
+          _user="${3}"
+    if [[ "${_source}" == "" ]] || \
+       [[ "${_source}" == "aur" ]] ; then
+        _url="https://aur.archlinux.org"
+    elif [ "${_source}" == "archlinux" ]; then
+        _url="https://gitlab.archlinux.org/${_user}/${_pkgname}-aur"
+    fi
+    git clone "${_url}/${_pkgname}"
+}
+
 _makepkg() {
     local _pkgname="${1}" \
-          _repo="${2}" \
+          _source="${2}" \
           _user="${3}"
     local _key \
 	  _awk_pgpkeys_cmd='/validpgpkeys=/{flag=1;next}/\)/{flag=0}flag' \
           _validpgpkeys
-    if [[ "${_repo}" == "" ]] || [[ "${_repo}" == "aur" ]] ; then
-        _url="https://aur.archlinux.org"
-    elif [ "${_repo}" == "archlinux" ]; then
-        _url="https://gitlab.archlinux.org/${_user}/${_pkgname}-aur"
-    fi
-    git clone "${_url}/${_pkgname}"
+    _retrieve_pkgbuild_repo "${_pkgname}"
+                            "${_source}" \
+	                    "${_user}"
     cd "${_pkgname}" || exit
     source 'PKGBUILD'
-    gpg --recv-keys "${validpgpkeys[@]}"
+    gpg --recv-keys \
+	"${validpgpkeys[@]}"
     makepkg
     mv "${_pkgname}"*".pkg.tar."* "${_server}"
 }
@@ -25,6 +36,7 @@ _makepkg() {
 _build_pkg() {
     local _pkgname="${1}" \
           _mode="${2}"  \
+	  _server="${3}"
           _pwd
     _pwd="$(pwd)"
     echo "building ${_pkgname}"
@@ -51,9 +63,8 @@ _build_repo() {
     # shellcheck source=./packages.extra
     # shellcheck disable=SC1091
     source "${_pwd}/${_packages}"
-    if [[ "${_server}" == "" ]]; then
-        _server="/tmp/archiso-profiles/${_profile}"
-    fi
+    [[ "${_server}" == "" ]] && \
+      _server="/tmp/ur/${_profile}"
     rm -rf repo "${_server}"
     mkdir -p repo "${_server}"
     chown "$(id -u):$(id -g)" "${_server}"
@@ -62,7 +73,9 @@ _build_repo() {
     # shellcheck disable=SC2154
     echo "building ${_packages[*]}"
     for _pkg in "${_packages[@]}"; do
-        _build_pkg "${_pkg}" "${_mode}"
+        _build_pkg "${_pkg}" \
+		   "${_mode}" \
+		   "${_server}"
     done
     cd ..
     rm -rf repo
@@ -71,4 +84,7 @@ _build_repo() {
 mode="${1}"
 packages_file="${2}"
 server="${3}"
-_build_repo "${mode}" "${packages_file}" "${server}"
+
+_build_repo "${mode}" \
+	    "${packages_file}" \
+	    "${server}"
