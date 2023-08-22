@@ -52,7 +52,7 @@ _get() {
           _msg \
           _ref \
           _type
-    _ref="${_image}_${_var}[@]"
+    _ref="${_obj}_${_var}[@]"
     _type="$(declare -p "${_ref}")"
     [[ "${_type}" == *"declare: "*": not found" ]] && \
       _msg=(
