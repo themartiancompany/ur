@@ -225,6 +225,51 @@ _set_overrides() {
      gpg_home="${override_gpg_home}"
 }
 
+# Show help usage, with an exit status.
+# $1: exit status number.
+_usage() {
+    IFS='' \
+      read -r \
+           -d '' \
+           usage_text << \
+             ENDUSAGETEXT || true
+usage: $(_get "app" "name")} [options] [pkg(s)]
+  options:
+     -f <pkg_list>    Whether to inprerpret the argument as a path to a pkglist
+		      Default: '$(_get "pkg" "list")'
+     -C <file>        pacman configuration file.
+		      Default: '$(_get "pacman" "conf")}'
+     -D <install_dir> Set an install_dir. All files will by located here.
+		      Default: '$(_get "install" "dir")'
+                      NOTE: Max 8 characters, use only [a-z0-9]
+     -L <repo_name>   Set an alternative repository name
+		      Default: '$(_get "repo" "name")'
+     -P <publisher>   Set the ISO publisher
+		      Default: '$(_get "repo" "publisher")}'
+     -c [cert ..]     Provide certificates for codesigning of the HTTP server for
+                      the repository.
+                      Multiple files are provided as quoted, space delimited list.
+                      The first file is considered as the signing certificate,
+                      the second as the key.
+     -g <gpg_key>     Set the PGP key ID to be used to generate the repository.
+                      Passed to gpg as the value for --default-key
+     -G <mbox>        Set the PGP signer (must include an email address)
+                      Passed to gpg as the value for --sender
+     -H <gpg_home>    Set the gpg home directory.
+     -h               This message
+     -o <out_dir>     Set the output directory
+		      Default: '$(_get "out" "dir")'
+     -v               Enable verbose output
+     -w <work_dir>    Set the working directory (can't be a bind mount).
+		      Default: '$(_get "work" "dir")}'
+
+  [package ..]  Package(s) to install.
+                Multiple packages are provided as quoted, space delimited list.
+ENDUSAGETEXT
+    printf '%s' "$(_get "usage" "text")"
+    exit "${1}"
+}
+
 while getopts 'f:C:L:P:w:g:G:H:vh?' arg; do
     case "${arg}" in
         f) override_pkg_list="${OPTARG}" ;;
@@ -246,14 +291,12 @@ done
 
 shift $((OPTIND - 1))
 
-if (( $# < 1 )); then
-    _msg_error "No package specified" 0
-    _usage 1
-fi
+(( $# < 1 )) && \
+  _msg_error "No package specified" 0 && \
+  _usage 1
 
-if (( EUID != 0 )); then
-    _msg_error "${app_name} must be run as root." 1
-fi
+(( EUID != 0 )) && \
+  _msg_error "$(_get "app" "name")} must be run as root." 1
 
 _packages_extra=("${@}")
 _set_overrides
