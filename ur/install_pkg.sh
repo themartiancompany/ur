@@ -36,8 +36,6 @@ _set() {
           _var="${2}" \
           _value="${3}" \
           _type
-    [[ "${_type}" == "declare -A "* ]] && \
-      
     printf -v "${_obj}_${_var}" \
               "${_value}"
 }
