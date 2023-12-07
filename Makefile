@@ -26,6 +26,7 @@ install-scripts:
         install -vDm 755 ur/setup_user.sh "$(LIB_DIR)/repo_builder"
 
 install-doc:
+
         install -vDm 644 $(DOC_FILES) -t $(DOC_DIR)
 
 .PHONY: check install install-doc install-scripts shellcheck
