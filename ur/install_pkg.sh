@@ -2,29 +2,42 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-set -e -u
-shopt -s extglob
+set \
+  -e \
+  -u
+shopt \
+  -s \
+  extglob
 
 # Set application name from the script's file name
 app_name="${0##*/}"
+
 # Show a WARNING message
 # $1: message string
-
 _msg_warning() {
-    local _msg="${1}"
-    printf '[%s] WARNING: %s\n' "${app_name}" "${_msg}" >&2
+  local \
+    _msg=(
+      "$@")
+  printf \
+    '[%s] WARNING: %s\n' \
+    "${app_name}" \
+    "${_msg[*]}" >&2
 }
 
 # Show an ERROR message then exit with status
 # $1: message string
 # $2: exit code number (with 0 does not exit)
 _msg_error() {
-    local _msg="${1}"
-    local _error=${2}
-    printf '[%s] ERROR: %s\n' "${app_name}" "${_msg}" >&2
-    if (( _error > 0 )); then
-        exit "${_error}"
-    fi
+  local \
+    _msg="${1}" \
+    _error=${2}
+  printf \
+    '[%s] ERROR: %s\n' \
+    "${app_name}" \
+    "${_msg}" >&2
+  (( _error > 0 )) && \
+    exit \
+      "${_error}"
 }
 
 # Sets object string attributes
@@ -32,12 +45,15 @@ _msg_error() {
 # $2: an object string attribute
 # $3: a value
 _set() {
-    local _obj="${1}" \
-          _var="${2}" \
-          _value="${3}" \
-          _type
-    printf -v "${_obj}_${_var}" \
-              "${_value}"
+  local \
+    _obj="${1}" \
+    _var="${2}" \
+    _value="${3}" \
+    _type
+  printf \
+    -v \
+    "${_obj}_${_var}" \
+    "${_value}"
 }
 
 # Returns an attribute value for a 
@@ -45,35 +61,43 @@ _set() {
 # $1: an object
 # $2: an object attribute
 _get() {
-    local _obj="${1}" \
-          _var="${2}" \
-          _msg \
-          _ref \
-          _type
-    _ref="${_obj}_${_var}[@]"
-    _type="$(declare -p "${_ref}")"
-    [[ "${_type}" == *"declare: "*": not found" ]] && \
-      _msg=(
-        "Attribute '${_var}' is not defined"
-        "for object '${_obj}'") && \
-      _msg_error "${_msg[*]}" 1
-    [[ "${_type}" == "declare -A "* ]] && \
-      echo "${_image[${_var}]}" && \
-      return
-    printf "%s\n" "${!_ref}"
+  local \
+    _obj="${1}" \
+    _var="${2}" \
+    _msg \
+    _ref \
+    _type
+  _ref="${_obj}_${_var}[@]"
+  _type="$( \
+    declare \
+      -p \
+      "${_ref}")"
+  [[ "${_type}" == *"declare: "*": not found" ]] && \
+    _msg=(
+      "Attribute '${_var}' is not defined"
+      "for object '${_obj}'") && \
+    _msg_error \
+      "${_msg[*]}" 1
+  [[ "${_type}" == "declare -A "* ]] && \
+    echo \
+      "${_image[${_var}]}" && \
+    return
+  printf \
+    "%s\n" \
+    "${!_ref}"
 }
 
 _global_variables() {
-    pkg_list=""
-    pacman_conf=""
-    repo_name=""
-    repo_publisher=""
-    install_dir=""
-    work_dir=""
-    gpg_key=""
-    gpg_sender=""
-    gpg_home=""
-    quiet=""
+  pkg_list=""
+  pacman_conf=""
+  repo_name=""
+  repo_publisher=""
+  install_dir=""
+  work_dir=""
+  gpg_key=""
+  gpg_sender=""
+  gpg_home=""
+  quiet=""
 }
 
 install_pkg() {
