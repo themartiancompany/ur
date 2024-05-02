@@ -2,89 +2,22 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-set \
-  -e \
-  -u
-shopt \
-  -s \
-  extglob
+_bin="$( \
+  dirname \
+    "$( \
+      command \
+        -v \
+	  "env")")"
+_lib="${_bin}/../lib"
+_share="${_bin}/../share"
+source \
+  "${_lib}/libcrash-bash/crash-bash"
 
-# Set application name from the script's file name
-app_name="${0##*/}"
-
-# Show a WARNING message
-# $1: message string
-_msg_warning() {
-  local \
-    _msg=(
-      "$@")
-  printf \
-    '[%s] WARNING: %s\n' \
-    "${app_name}" \
-    "${_msg[*]}" >&2
-}
-
-# Show an ERROR message then exit with status
-# $1: message string
-# $2: exit code number (with 0 does not exit)
-_msg_error() {
-  local \
-    _msg="${1}" \
-    _error=${2}
-  printf \
-    '[%s] ERROR: %s\n' \
-    "${app_name}" \
-    "${_msg}" >&2
-  (( _error > 0 )) && \
-    exit \
-      "${_error}"
-}
-
-# Sets object string attributes
-# $1: object
-# $2: an object string attribute
-# $3: a value
-_set() {
-  local \
-    _obj="${1}" \
-    _var="${2}" \
-    _value="${3}" \
-    _type
-  printf \
-    -v \
-    "${_obj}_${_var}" \
-    "${_value}"
-}
-
-# Returns an attribute value for a 
-# given object
-# $1: an object
-# $2: an object attribute
-_get() {
-  local \
-    _obj="${1}" \
-    _var="${2}" \
-    _msg \
-    _ref \
-    _type
-  _ref="${_obj}_${_var}[@]"
-  _type="$( \
-    declare \
-      -p \
-      "${_ref}")"
-  [[ "${_type}" == *"declare: "*": not found" ]] && \
-    _msg=(
-      "Attribute '${_var}' is not defined"
-      "for object '${_obj}'") && \
-    _msg_error \
-      "${_msg[*]}" 1
-  [[ "${_type}" == "declare -A "* ]] && \
-    echo \
-      "${_image[${_var}]}" && \
-    return
-  printf \
-    "%s\n" \
-    "${!_ref}"
+# Check all required programs
+# are available
+_requirements() {
+  _check_cmd \
+    'pacman'
 }
 
 _global_variables() {
@@ -94,9 +27,11 @@ _global_variables() {
   repo_publisher=""
   install_dir=""
   work_dir=""
+  out_dir=""
   gpg_key=""
   gpg_sender=""
   gpg_home=""
+  color=""
   quiet=""
 }
 
@@ -165,97 +100,94 @@ install_pkg() {
     source "${_packages_extra}"
   if [[ "${_packages[*]}" != "" ]] ; then
     sh -c "${_build_repo_cmd}"
-    "${_gen_pacman_conf}" "${repo_name}" \
-                          "${_server}" \
-      		          "${_src_profile}/pacman.conf" \
-      		          "${_pacman_conf}"
-    pacman "${_pacman_opts[@]}" -Sy
-    for _pkg in "${_packages[@]}"; do
-      echo "Removing conflicts for ${_pkg}"
-      _conflicts_line="$(pacman "${_pacman_opts[@]}" \
-	                        -Si "${_pkg}" \
-	                   | grep Conflicts)"
+    "${_gen_pacman_conf}" \
+      "${repo_name}" \
+      "${_server}" \
+      "${_src_profile}/pacman.conf" \
+      "${_pacman_conf}"
+    pacman \
+      "${_pacman_opts[@]}" \
+      -Sy
+    for _pkg \
+      in "${_packages[@]}"; do
+      echo \
+	"Removing conflicts for ${_pkg}"
+      _conflicts_line="$( \
+	pacman \
+	  "${_pacman_opts[@]}" \
+	  -Si \
+	    "${_pkg}" | \
+	    grep \
+	      Conflicts)"
       _conflicts=(
-        $(echo ${_conflicts_line##*:} | \
-	    awk "${_awk_split_cmd[*]}"))
-      for _conflict in "${_conflicts[@]}"; do
-	echo "Removing '${_conflict}'"
-        pacman -Rdd "${_conflict}" \
-		--noconfirm || true
+        $(echo \
+	    ${_conflicts_line##*:} | \
+	    awk \
+	      "${_awk_split_cmd[*]}"))
+      for _conflict \
+	in "${_conflicts[@]}"; do
+	echo \
+	  "Removing '${_conflict}'"
+        pacman \
+	  -Rdd \
+	    "${_conflict}" \
+	  --noconfirm || \
+	  true
       done
     done
-    echo "Installing ${_packages[@]}"
-    pacman "${_pacman_opts[@]}" \
-	    -Sdd "${_packages[@]}" \
-	    --noconfirm
+    echo \
+      "Installing ${_packages[@]}"
+    pacman \
+      "${_pacman_opts[@]}" \
+      -Sdd \
+        "${_packages[@]}" \
+      --noconfirm
   fi
 }
 
-_set_override() {
-    local _obj="${1}" \
-          _var="${2}" \
-          _default="${3}"
-    if [[ -v "override_${_obj}_${_var}" ]]; then
-        _set "${_obj}" \
-             "${_var}" \
-             "$(_get "override_${obj}" \
-                     "${_var}")"
-    elif [[ -z "$(_get "${_obj}" \
-                       "${_var}")" ]]; then
-        _set "${_obj}" \
-             "${_var}" \
-             "${_value}"
-    fi
-}
-
-_override_path() {
-    local _obj="${1}" \
-          _var="${2}" \
-          _value="${3}"
-    _set_override "${_obj}" \
-                  "${_var}" \
-                  "${_value}"
-    _set "${_obj}" \
-         "${_var}" \
-         "$(realpath -- "$(_get "${_obj}" \
-                                "${_var}")")"
-}
-
 _set_overrides() {
-   _override_path "pkg" \
-                  "list" \
-		  "packages.extra"
-   _override_path "pacman" \
-                  "conf" \
-		  "/etc/pacman.conf"
-   _set_override "repo" \
-	         "name" \
-                 "${app_name}"
-   _set_override "repo" \
-	         "publisher" \
-		 "${repo_name}"
-   if [[ -v override_quiet ]]; then
-     quiet="${override_quiet}"
-   elif [[ -z "${quiet}" ]]; then
-     quiet="y"
-   fi
-   [[ ! -v override_gpg_key ]] || \
-     gpg_key="${override_gpg_key}"
-   [[ ! -v override_gpg_sender ]] || \
-     gpg_sender="${override_gpg_sender}"
-   [[ ! -v override_gpg_home ]] || \
-     gpg_home="${override_gpg_home}"
+  _override_path \
+    "pkg" \
+    "list" \
+    "packages.extra"
+  _override_path \
+    "pacman" \
+    "conf" \
+    "/etc/pacman.conf"
+  _set_override \
+    "repo" \
+    "name" \
+    "${app_name}"
+  _set_override \
+    "repo" \
+    "publisher" \
+    "${repo_name}"
+  if [[ -v override_quiet ]]; then
+    quiet="${override_quiet}"
+  elif [[ -z "${quiet}" ]]; then
+   kquiet="y"
+  fi
+  [[ ! -v override_gpg_key ]] || \
+    gpg_key="${override_gpg_key}"
+  [[ ! -v override_gpg_sender ]] || \
+    gpg_sender="${override_gpg_sender}"
+  [[ ! -v override_gpg_home ]] || \
+    gpg_home="${override_gpg_home}"
 }
 
 # Show help usage, with an exit status.
 # $1: exit status number.
 _usage() {
-    IFS='' \
-      read -r \
-           -d '' \
-           usage_text << \
-             ENDUSAGETEXT || true
-usage: $(_get "app" "name")} [options] [pkg(s)]
+  IFS='' \
+  read \
+    -r \
+    -d '' \
+    usage_text << \
+      ENDUSAGETEXT || true
+usage:
+  $(_get "app" "name")
+    [options]
+    [pkg(s)]
   options:
      -f <pkg_list>    Whether to inprerpret the argument as a path to a pkglist
 		      Default: '$(_get "pkg" "list")'
@@ -288,38 +220,56 @@ usage: $(_get "app" "name")} [options] [pkg(s)]
   [package ..]  Package(s) to install.
                 Multiple packages are provided as quoted, space delimited list.
 ENDUSAGETEXT
-    printf '%s' "$(_get "usage" "text")"
-    exit "${1}"
+  _printf \
+    '%s' \
+    "$(_get \
+         "usage" \
+         "text")"
+    exit \
+      "${1}"
 }
 
-while getopts 'f:C:L:P:w:g:G:H:vh?' arg; do
-    case "${arg}" in
-        f) override_pkg_list="${OPTARG}" ;;
-        C) override_pacman_conf="${OPTARG}" ;;
-        L) override_repo_name="${OPTARG}" ;;
-        P) override_repo_publisher="${OPTARG}" ;;
-        w) override_work_dir="${OPTARG}" ;;
-        g) override_gpg_key="${OPTARG}" ;;
-        G) override_gpg_sender="${OPTARG}" ;;
-        H) override_gpg_home="${OPTARG}" ;;
-        v) override_quiet="n" ;;
-        h|?) _usage 0 ;;
-        *)
-            _msg_error "Invalid argument '${arg}'" 0
-            _usage 1
-            ;;
-    esac
+_globals
+_global_variables
+_requirements
+while \
+  getopts \
+    'f:C:L:P:w:g:G:H:vh?' \
+    arg; do
+  case "${arg}" in
+    f) override_pkg_list="${OPTARG}" ;;
+    C) override_pacman_conf="${OPTARG}" ;;
+    L) override_repo_name="${OPTARG}" ;;
+    P) override_repo_publisher="${OPTARG}" ;;
+    w) override_work_dir="${OPTARG}" ;;
+    g) override_gpg_key="${OPTARG}" ;;
+    G) override_gpg_sender="${OPTARG}" ;;
+    H) override_gpg_home="${OPTARG}" ;;
+    v) override_quiet="n" ;;
+    h|?) _usage 0 ;;
+    *)
+      _msg_error \
+        "Invalid argument '${arg}'" \
+        0 && \
+      _usage \
+        1
+    ;;
+  esac
 done
 
-shift $((OPTIND - 1))
-
+shift \
+  $(( \
+    OPTIND - 1))
 (( $# < 1 )) && \
-  _msg_error "No package specified" 0 && \
-  _usage 1
-
-(( EUID != 0 )) && \
-  _msg_error "$(_get "app" "name")} must be run as root." 1
-
-_packages_extra=("${@}")
+  _msg_error \
+    "No package specified" \
+    0 && \
+  _usage \
+    1
+_require_root
+packages_extra=(
+  "$@"
+)
 _set_overrides
-_install_pkg ""
+_install_pkg \
+"${packages_extra}"
