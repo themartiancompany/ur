@@ -23,7 +23,6 @@ install-scripts:
 	install -vDm 755 ur/build_repo.sh "$(LIB_DIR)/mkrepo"
 	install -vDm 755 ur/install_pkg.sh "$(LIB_DIR)/install"
 	install -vDm 755 ur/gen_pacman_conf.sh "$(LIB_DIR)/gen_pacman_conf"
-	install -vDm 755 ur/setup_user.sh "$(LIB_DIR)/repo_builder"
 
 install-doc:
 
