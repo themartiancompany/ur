@@ -70,6 +70,8 @@ _build_pkg() {
     exit
 }
 
+# Builds repo
+# $1: mode ()
 _build_repo() {
   local \
     _mode="${1}" \
