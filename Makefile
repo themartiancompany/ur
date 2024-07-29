@@ -3,6 +3,7 @@
 
 PREFIX ?= /usr/local
 DOC_DIR=$(DESTDIR)$(PREFIX)/share/doc/ur
+BIN_DIR=$(DESTDIR)$(PREFIX)/bin
 LIB_DIR=$(DESTDIR)$(PREFIX)/lib
 
 DOC_FILES=$(wildcard *.rst)
