@@ -11,9 +11,13 @@ contract UserRepository {
     address public immutable deployer = 0xea02F564664A477286B93712829180be4764fAe2;
     string public hijess = "urlife";
     string public version = "1.0";
-    string public baseRepositoryRevenue = 5;
-    string public mediumRepositoryRevenue = 10;
-    string public fullRepositoryRevenue = 20;
+    uint256 public baseRepositoryRevenue = 5;
+    uint256 public mediumRepositoryRevenue = 10;
+    uint256 public fullRepositoryRevenue = 20;
+    uint256 public unit = 1000000000000000000;
+    uint256 public baseRevenueThreshold = unit;
+    uint256 public fullRevenueThrehold = 10 * unit;
+    uint256 public scale = 1000000000;
 
     mapping(address => uint256) public packageNo; 
     mapping(address => mapping(uint256 => string)) public package;
@@ -90,6 +94,76 @@ contract UserRepository {
     }
 
     /**
+    * @dev Multiplies two numbers, throws on overflow.
+     * @param a An integer.
+     * @param b Another integer.
+    */
+    function mul(
+      uint256 a,
+      uint256 b)
+      internal
+      pure
+      returns (uint256 c) {
+      if (a == 0) {
+        return 0;
+      }
+      c = a * b;
+      assert(
+        c / a == b );
+      return c;
+    }
+
+    /**
+    * @dev Integer division of two numbers, truncating the quotient.
+     * @param a An integer.
+     * @param b Another integer.
+    */
+    function div(
+      uint256 a,
+      uint256 b)
+      internal
+      pure
+      returns (uint256) {
+      // Solidity automatically throws when dividing by 0
+      // assert(b > 0);
+      // uint256 c = a / b;
+      // There is no case in which this doesn't hold
+      // assert(a == b * c + a % b);
+      return a / b;
+    }
+
+     /**
+     * @dev Returns publisher share for the set price of a recipe revision.
+     * @param _amount A revision purchase price.
+     */
+    function getPublisherShare(
+      uint256 _amount)
+    public
+    view
+    returns (uint256)
+    {
+      uint256 repositoryRevenue;
+      if ( _amount <= baseRevenueThreshold ) {
+        repositoryRevenue = baseRepositoryRevenue;
+      }
+      else if ( baseRevenueThreshold < _amount && _amount <= fullRevenueThreshold * unit ) {
+	repositoryRevenue = mediumRepositoryRevenue;
+      }
+      else if ( _amount > fullRevenueThreshold ) {
+        repositoryRevenue = fullRepositoryRevenue;
+      }
+      uint256 publisherRevenue = 100 - repositoryRevenue;
+      uint256 publisherShare = div(
+        div(
+          mul(
+            _amount,
+	    scale),
+	  publisherRevenue),
+	scale);
+      return publisherShare;
+    }
+
+    /**
      * @dev Purchase a package recipe.
      * @param _package Package(s group) built by the recipe.
      * @param _publisher Package recipe publisher from which one is purchasing the recipe.
@@ -105,10 +179,29 @@ contract UserRepository {
         msg.value >= price[_package][_publisher][_revision],
 	"tried to purchase the recipe for less than its price");
       if ( msg.sender != _publisher ) {
+        uint256 publisherShare = getPublisherShare(
+	  price[_package][_publisher][_revision]);
         payable(_publisher).transfer(
-          msg.value);
+          publisherShare);
+        payable(deployer).transfer(
+          msg.value - publisherShare);
       }
       purchased[_package][_publisher][_revision][_receiver] = true;
+    }
+
+    /**
+     * @dev Read publisher recommended package recipe revision.
+     * @param _publisher Recipe publisher.
+     * @param _package Package(s group) built by the recipe.
+     */
+    function readRevTarget(
+      address _publisher,
+      string memory _package)
+    public
+    view
+    returns (uint256)
+    {
+      return revTarget[_package][_publisher];
     }
 
     /**
