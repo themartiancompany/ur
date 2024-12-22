@@ -63,18 +63,19 @@ contract UserRepository {
       string memory _uri)
       internal
       pure {
-      bytes memory _prefix = new bytes(
+      string memory _prefix = "evmfs://";
+      bytes memory _uri_prefix = new bytes(
         8);
       for(
         uint i = 0;
         i <= 7;
         i++){
-        _prefix[i] = bytes(
+        _uri_prefix[i] = bytes(
 	  _uri)[i];
       }
       require(
         string(
-          _prefix) == "evmfs://",
+          _uri_prefix) == _prefix,
 	"input is not an evmfs uri");
     }
 
@@ -100,7 +101,7 @@ contract UserRepository {
         package[_publisher][packageNo[_publisher]] = _package;
         packageNo[_publisher] = packageNo[_publisher] + 1;  
       }
-      revNo[_package][_publisher] = revNo[_publisher][_package] + 1;  
+      revNo[_package][_publisher] = revNo[_package][_publisher] + 1;  
     }
 
     /**
