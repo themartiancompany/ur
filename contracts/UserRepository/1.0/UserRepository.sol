@@ -52,7 +52,7 @@ contract UserRepository {
       public
       view {
       require(
-        purchased[_package][_publisher][_revision][msg.sender] == true, "recipe not purchased" );
+        purchased[_package][_publisher][_revision][msg.sender] == true, "sender has not purchased the recipe" );
     }
 
     /**
@@ -246,9 +246,8 @@ contract UserRepository {
     {
       checkPurchased(
         _package,
-	_publisher,
-	_revision,
-	msg.sender
+        _publisher,
+        _revision
       );
       return recipe[_package][_publisher][_revision];
     }
