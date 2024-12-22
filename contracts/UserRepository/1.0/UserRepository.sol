@@ -63,7 +63,8 @@ contract UserRepository {
       string memory _uri)
       internal
       pure {
-      string memory _prefix = "evmfs://";
+      bytes memory _prefix = bytes(
+        "evmfs://");
       bytes memory _uri_prefix = new bytes(
         8);
       for(
@@ -74,8 +75,10 @@ contract UserRepository {
 	  _uri)[i];
       }
       require(
-        string(
-          _uri_prefix) == _prefix,
+        _uri_prefix.length == _prefix.length &&
+        keccak256(
+          _uri_prefix) == keccak256(
+            _prefix),
 	"input is not an evmfs uri");
     }
 
