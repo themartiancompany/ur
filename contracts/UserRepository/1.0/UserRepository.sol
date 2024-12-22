@@ -18,6 +18,7 @@ contract UserRepository {
     mapping(address => uint256) public packageNo; 
     mapping(address => mapping(uint256 => string)) public package;
     mapping(string => mapping(address => uint256)) public revNo; 
+    mapping(string => mapping(address => uint256)) public revTarget; 
     mapping(string => mapping(address => mapping(uint256 => string))) public recipe; 
     mapping(string => mapping(address => mapping(uint256 => uint256))) public price; 
     mapping(string => mapping(address => mapping(uint256 => mapping(address => bool)))) public purchased; 
@@ -71,6 +72,21 @@ contract UserRepository {
         packageNo[_publisher] = packageNo[_publisher] + 1;  
       }
       revNo[_package][_publisher] = revNo[_publisher][_package] + 1;  
+    }
+
+    /**
+     * @dev Set a recommended revision for a package recipe.
+     * @param _package Package(s group) built by the recipe.
+     * @param _publisher Package recipe publisher.
+     * @param _rev Recipe revision to set as recommended.
+     */
+    function setRevTarget(
+      string memory _package,
+      address _publisher,
+      uint256 _rev) public {
+      checkOwner(
+        _publisher);
+      revTarget[_package][_publisher] = _rev;
     }
 
     /**
