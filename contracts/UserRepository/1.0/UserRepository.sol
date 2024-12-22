@@ -202,7 +202,9 @@ contract UserRepository {
       string memory _package,
       address payable _publisher,
       uint256 _revision,
-      address payable _receiver) public {
+      address payable _receiver)
+      public
+      payable {
       require(
         msg.value >= price[_package][_publisher][_revision],
 	"tried to purchase the recipe for less than its price");
