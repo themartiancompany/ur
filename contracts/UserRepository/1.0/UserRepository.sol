@@ -205,10 +205,11 @@ contract UserRepository {
         msg.value >= price[_package][_publisher][_revision],
 	"tried to purchase the recipe for less than its price");
       if ( msg.sender != _publisher ) {
+	uint256 publisherShare = getPublisherShare(
+          price[_package][_publisher][_revision]);
         payable(
           _publisher).transfer(
-            getPublisherShare(
-              price[_package][_publisher][_revision]));
+            publisherShare);
         payable(
 	  deployer).transfer(
             msg.value - publisherShare);
