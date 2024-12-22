@@ -60,8 +60,6 @@ contract UserRepository {
      * @param _uri The URI to check.
      */
     function checkUri(
-      uint256 begin,
-      uint256 end,
       string memory _uri)
       internal
       pure {
@@ -99,7 +97,7 @@ contract UserRepository {
       recipe[_package][_publisher][revNo[_package][_publisher]] = _recipe;
       price[_package][_publisher][revNo[_package][_publisher]] = _price;
       if ( revNo[_package][_publisher] == 0 ) {
-        package[packageNo[_publisher]] = _package;
+        package[_publisher][packageNo[_publisher]] = _package;
         packageNo[_publisher] = packageNo[_publisher] + 1;  
       }
       revNo[_package][_publisher] = revNo[_publisher][_package] + 1;  
