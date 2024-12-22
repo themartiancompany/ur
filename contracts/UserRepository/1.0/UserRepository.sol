@@ -75,6 +75,7 @@ contract UserRepository {
 	  _uri)[i];
       }
       require(
+	_uri_prefix.length == _prefix.length &&
         keccak256(
           _uri_prefix) == keccak256(
             _prefix),
