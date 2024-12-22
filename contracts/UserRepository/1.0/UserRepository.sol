@@ -56,11 +56,36 @@ contract UserRepository {
     }
 
     /**
+     * @dev Check an URI is an evmfs resource.
+     * @param _uri The URI to check.
+     */
+    function checkUri(
+      uint256 begin,
+      uint256 end,
+      string memory _uri)
+      internal
+      pure {
+      bytes memory _prefix = new bytes(
+        8);
+      for(
+        uint i = 0;
+        i <= 7;
+        i++){
+        _prefix[i] = bytes(
+	  _uri)[i];
+      }
+      require(
+        string(
+          _prefix) == "evmfs://",
+	"input is not an evmfs uri");
+    }
+
+    /**
      * @dev Publish a package recipe.
      * @param _package Package(s group) built by the recipe.
      * @param _publisher Package recipe publisher.
      * @param _price Recipe purchase price.
-     * @param _message Recipe URI.
+     * @param _recipe Recipe Ethereum Virtual Machine File System URI.
      */
     function publishRecipe(
       string memory _package,
@@ -69,6 +94,8 @@ contract UserRepository {
       string memory _recipe) public {
       checkOwner(
         _publisher);
+      checkUri(
+        _recipe);
       recipe[_package][_publisher][revNo[_package][_publisher]] = _recipe;
       price[_package][_publisher][revNo[_package][_publisher]] = _price;
       if ( revNo[_package][_publisher] == 0 ) {
