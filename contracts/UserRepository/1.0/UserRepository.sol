@@ -153,14 +153,13 @@ contract UserRepository {
         repositoryRevenue = fullRepositoryRevenue;
       }
       uint256 publisherRevenue = 100 - repositoryRevenue;
-      uint256 publisherShare = div(
+      return div(
         div(
           mul(
             _amount,
 	    scale),
 	  publisherRevenue),
 	scale);
-      return publisherShare;
     }
 
     /**
@@ -179,12 +178,13 @@ contract UserRepository {
         msg.value >= price[_package][_publisher][_revision],
 	"tried to purchase the recipe for less than its price");
       if ( msg.sender != _publisher ) {
-        uint256 publisherShare = getPublisherShare(
-	  price[_package][_publisher][_revision]);
-        payable(_publisher).transfer(
-          publisherShare);
-        payable(deployer).transfer(
-          msg.value - publisherShare);
+        payable(
+          _publisher).transfer(
+            getPublisherShare(
+              price[_package][_publisher][_revision]));
+        payable(
+	  deployer).transfer(
+            msg.value - publisherShare);
       }
       purchased[_package][_publisher][_revision][_receiver] = true;
     }
