@@ -16,7 +16,7 @@ contract UserRepository {
     uint256 public fullRepositoryRevenue = 20;
     uint256 public unit = 1000000000000000000;
     uint256 public baseRevenueThreshold = unit;
-    uint256 public fullRevenueThrehold = 10 * unit;
+    uint256 public fullRevenueThreshold = 10 * unit;
     uint256 public scale = 1000000000;
 
     mapping(address => uint256) public packageNo; 
