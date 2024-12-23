@@ -189,14 +189,13 @@ contract UserRepository {
       uint256 publisherRevenue = 100 - repositoryRevenue;
       return div(
         div(
-	  div(
-	    mul(
-              mul(
-                _amount,
-	        scale),
-	      publisherRevenue)),
-	    100),
-	scale);
+          mul(
+            mul(
+              _amount,
+              scale),
+            publisherRevenue),
+          100),
+        scale);
     }
 
     /**
