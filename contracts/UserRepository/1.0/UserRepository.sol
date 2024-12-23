@@ -207,10 +207,10 @@ contract UserRepository {
       address payable _receiver)
       public
       payable {
-      require(
-        msg.value >= price[_package][_publisher][_revision],
-	"tried to purchase the recipe for less than its price");
       if ( msg.sender != _publisher ) {
+        require(
+          msg.value >= price[_package][_publisher][_revision],
+          "tried to purchase the recipe for less than its price");
 	uint256 publisherShare = getPublisherShare(
           price[_package][_publisher][_revision]);
         payable(
