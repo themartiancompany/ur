@@ -93,7 +93,8 @@ contract UserRepository {
       string memory _package,
       address _publisher,
       uint256 _price,
-      string memory _recipe) public {
+      string memory _recipe)
+      public {
       checkOwner(
         _publisher);
       checkUri(
@@ -116,7 +117,8 @@ contract UserRepository {
     function setRevTarget(
       string memory _package,
       address _publisher,
-      uint256 _rev) public {
+      uint256 _rev)
+      public {
       checkOwner(
         _publisher);
       revTarget[_package][_publisher] = _rev;
