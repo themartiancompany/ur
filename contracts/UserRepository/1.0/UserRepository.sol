@@ -245,8 +245,8 @@ contract UserRepository {
      * @param _revision Recipe revision.
      */
     function readRecipe(
-      address _publisher,
       string memory _package,
+      address _publisher,
       uint256 _revision)
     public
     view
