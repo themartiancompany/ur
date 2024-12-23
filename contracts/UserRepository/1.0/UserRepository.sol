@@ -121,6 +121,9 @@ contract UserRepository {
       public {
       checkOwner(
         _publisher);
+      require(
+        _rev < revNo[_package][_publisher],
+        "tried to set as target an non-existent revision");
       revTarget[_package][_publisher] = _rev;
     }
 
@@ -186,10 +189,13 @@ contract UserRepository {
       uint256 publisherRevenue = 100 - repositoryRevenue;
       return div(
         div(
-          mul(
-            _amount,
-	    scale),
-	  publisherRevenue),
+	  div(
+	    mul(
+              mul(
+                _amount,
+	        scale),
+	      publisherRevenue)),
+	    100),
 	scale);
     }
 
@@ -209,8 +215,11 @@ contract UserRepository {
       payable {
       if ( msg.sender != _publisher ) {
         require(
+          purchased[_package][_publisher][_revision][_receiver] == false,
+          "the receiver has already purchased the target recipe revision");
+        require(
           msg.value >= price[_package][_publisher][_revision],
-          "tried to purchase the recipe for less than its price");
+          "tried to purchase the recipe revision for less than its price");
 	uint256 publisherShare = getPublisherShare(
           price[_package][_publisher][_revision]);
         payable(
