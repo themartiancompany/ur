@@ -152,7 +152,7 @@ install-doc:
 install-scripts:
 
 	$(_INSTALL_EXE) \
-	  "$(_PROJECT)/gen_key.sh \
+	  "$(_PROJECT)/gen_key.sh" \
 	  "$(LIB_DIR)/gen_key"
 	$(_INSTALL_EXE) \
 	  "$(_PROJECT)/build_repo.sh" \
