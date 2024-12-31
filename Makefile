@@ -79,6 +79,7 @@ shellcheck:
 contracts:
 
 	evm-make \
+	  -v \
 	  -C \
 	    . \
 	  -b \
@@ -88,10 +89,8 @@ contracts:
 
 install-contracts-sources:
 
-	install \
-	  -dm755 \
-	  "$(LIB_DIR)"
 	evm-make \
+	  -v \
 	  -C \
 	    . \
 	  -b \
@@ -104,10 +103,8 @@ install-contracts-sources:
 
 install-contracts-deployments-config:
 
-	install \
-	  -dm755 \
-	  "$(LIB_DIR)"
 	evm-make \
+	  -v \
 	  -C \
 	    . \
 	  -b \
@@ -120,10 +117,8 @@ install-contracts-deployments-config:
 
 install-contracts-deployments-solc:
 
-	install \
-	  -dm755 \
-	  "$(LIB_DIR)"
 	evm-make \
+	  -v \
 	  -C \
 	    . \
 	  -b \
@@ -136,10 +131,8 @@ install-contracts-deployments-solc:
 
 install-contracts-deployments-hardhat:
 
-	install \
-	  -dm755 \
-	  "$(LIB_DIR)"
 	evm-make \
+	  -v \
 	  -C \
 	    . \
 	  -b \
