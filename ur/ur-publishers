@@ -1,0 +1,1387 @@
+#!/usr/bin/env bash
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+_bin="$( \
+  dirname \
+    "$( \
+      command \
+        -v \
+	  "env")")"
+_lib="${_bin}/../lib"
+source \
+  "${_lib}/libcrash-bash/crash-bash"
+
+# shellcheck disable=SC2034
+_global_variables() {
+  call_date=""
+  up_address=""
+  up_version=""
+  deployments_dir=""
+  user_level=""
+  wallet_name=""
+  wallet_path=""
+  wallet_password=""
+  wallet_seed=""
+  wallet_address=""
+  target_network=""
+  api_key=""
+  cache_dir=""
+  target_command=""
+  target_value=""
+  command_args=()
+  color=""
+  quiet=""
+}
+
+_requirements() {
+  _check_cmd \
+    'evm-chains-explorers'
+  _check_cmd \
+    'evm-chains-info'
+  _check_cmd \
+    'evm-contract-call' \
+    'evm-contracts-tools'
+  _check_cmd \
+    'evm-contract-deployment-address' \
+    'evm-contracts-tools'
+  _check_cmd \
+    'evm-contract-deployment-versions' \
+    'evm-contracts-tools'
+  _check_cmd \
+    'evm-contract-deployments-dir' \
+    'evm-contracts-tools'
+  _check_cmd \
+    'evm-wallet'
+  _check_cmd \
+    'gpg-key-info'
+}
+
+_get_conf_dir_path() {
+  local \
+    _dir
+  _dir="${HOME}/.config/ur/publishers"
+  echo \
+    "${_dir}"
+}
+
+_cache_dir_auto_detect() {
+  local \
+    _dir
+  _dir="${HOME}/.cache/publishers"
+  echo \
+    "${_dir}"
+}
+
+_node_run() {
+  local \
+    _cmd="${1}" \
+    _args=() \
+    _node_path \
+    _lib
+  shift \
+    1
+  _args=(
+    "$@"
+  )
+  _lib="$( \
+    _get_lib)"
+  _node_path="${_lib}/node_modules" 
+  export \
+    NODE_PATH="${_node_path}"
+  if [[ "${quiet}" != "y" ]]; then
+    _args+=(
+      -v
+    )
+  fi
+  NODE_PATH="${_node_path}" \
+  node \
+    "${_cmd}" \
+      "${_args[@]}" || \
+    true
+}
+
+_file_size_check() {
+  local \
+    _file="${1}" \
+    _size \
+    _msg=()
+  _size="$( \
+    du \
+      -b \
+      "${_file}" | \
+      awk '{print $1}')"
+  _msg=(
+    "file '${_file}' has size '${_size}' bytes"
+  )
+  _msg_info \
+    "${_msg[*]}"
+  if (( 22000 < "${_size}" )); then
+    _msg_info \
+      "writing over more than a single string!"
+    _many_chunks="true"
+  fi
+}
+
+_chunk_verify() {
+  local \
+    _contract="${1}" \
+    _namespace="${2}" \
+    _sum="${3}" \
+    _index="${4}" \
+    _chunk="${5}" \
+    _remote \
+    _verify_dir \
+    _local_sum \
+    _remote_sum \
+    _msg=()
+  _verify_dir="${_cache_dir}/${_sum}/verify"
+  _remote="${_verify_dir}/${_index}"
+  mkdir \
+    -p \
+    "${_verify_dir}"
+  evm-contract-call \
+    "${_verify_call_opts[@]}" \
+    "${_fs_address}" \
+    "chunks" \
+    "${_namespace}" \
+    "${_sum}" \
+    "${_index}" > \
+    "${_remote}"
+  _local_sum="$( \
+    _file_hash \
+      "${_chunk}")"
+  _remote_sum="$( \
+    _file_hash \
+      "${_remote}")"
+  if [[ "${_local_sum}" != "${_remote_sum}" ]]; then
+    _msg=(
+      "somehow local chunk '${_chunk}',"
+      "corresponding to chunk having"
+      "index '${_index}' on the blockchain"
+      "has not been written correctly"
+      "on the blockchain at address '$(_publishing_address_get)'"
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+}
+
+_chunk_lock() {
+  local \
+    _contract="${1}" \
+    _namespace="${2}" \
+    _sum="${3}" \
+    _index="${4}"
+  evm-contract-call \
+    "${_lock_call_opts[@]}" \
+    "${_fs_address}" \
+    "lockChunk" \
+    "${_namespace}" \
+    "${_sum}" \
+    "${_index}"
+}
+
+_file_hash() {
+  local \
+    _file="${1}"
+  sha256sum \
+    "${_file}" | \
+    awk \
+      '{print $1}'
+}
+
+_chunk_publish() {
+  local \
+    _fs_address="${1}" \
+    _namespace="${2}" \
+    _sum="${3}" \
+    _index="${4}" \
+    _payload="${5}"
+  evm-contract-call \
+    "${_publish_call_opts[@]}" \
+    "${_fs_address}" \
+    "publishChunk" \
+    "${_namespace}" \
+    "${_sum}" \
+    "${_index}" \
+    "${_payload}"
+}
+
+_contract_call_opts_setup() {
+  local \
+    _msg=()
+  if [[ "${quiet}" == "n" ]]; then
+    _publish_call_opts+=(
+      -v
+    )
+    _lock_call_opts+=(
+      -v
+    )
+  fi
+  _evm_contract_call_opts+=(
+    -n
+      "${_target_network}"
+    -N
+      "${_wallet_name}"
+    -k
+      "${_api_key_path}"
+    -A
+      "${_abi}"
+    -B
+      "${_bytecode}"
+    -C
+      "${_compiler_output}"
+  )
+  _check_call_opts+=(
+    "${_evm_contract_call_opts[@]}"
+    -t
+      "static"
+  )
+  _publish_call_opts+=(
+    "${_evm_contract_call_opts[@]}"
+    -t
+      "dynamic"
+  )
+  _verify_call_opts+=(
+    "${_evm_contract_call_opts[@]}"
+    -t
+      "static"
+  )
+  _lock_call_opts+=(
+    "${_evm_contract_call_opts[@]}"
+    -t
+      "dynamic"
+  )
+  _msg=(
+    "evm-contract-call will be called"
+    "with base options '${_evm_contract_call_opts[*]}'"
+  )
+  _msg_info \
+    "${_msg[*]}"
+}
+
+_work_dir_setup() {
+  local \
+    _msg=()
+  _tmp_dir="${_cache_dir}/${_sum}/publish"
+  _msg=(
+    "setting up work directory"
+    "'${_tmp_dir}'"
+  )
+  _msg_info \
+    "${_msg[*]}"
+  mkdir \
+    -p \
+    "${_tmp_dir}"
+}
+
+_file_encode() {
+  local \
+    _msg=() \
+    _length
+  _length=22000
+  _chunk_prefix="$( \
+    mktemp \
+      -u \
+      -p \
+      "${_tmp_dir}" \
+      --suffix=".base64")"
+  _file_size_check \
+    "${_file}"
+  _bin2txt_opts+=(
+    -L
+      "${_length}"
+  )
+  if [[ "${quiet}" == "n" ]]; then
+    _bin2txt_opts+=(
+      -v
+    )
+  fi
+  _msg=(
+    "encoding file with base64 encoding"
+    "and splitting it into 22000 characters"
+    "chunks"
+  )
+  _msg_info \
+    "${_msg[*]}"
+  bin2txt \
+    "${_bin2txt_opts[@]}" \
+    "${_file}" \
+    "${_chunk_prefix}"
+}
+
+_queue_setup() {
+  local \
+    _chunk \
+    _msg=() \
+    _query
+  if [[ "${_many_chunks}" == "true" ]]; then
+    _query="${_chunk_prefix}."
+  elif [[ "${_many_chunks}" == "false" ]]; then
+    _query="${_chunk_prefix}"
+  fi
+  _total_chunks="$( \
+    find \
+      "${_query}"* \
+      -type \
+        "f" \
+      -printf \
+        '.' | \
+      wc \
+        -c)"
+  if [[ "${_total_chunks}" == "1" ]]; then
+    _queue+=(
+      "${_chunk_prefix}"
+    )
+  elif (( 1 < "${_total_chunks}")); then
+    for _chunk \
+      in $(seq \
+             "${_total_chunks}"); do
+      _queue+=(
+        "${_chunk_prefix}.${_chunk}"
+      )
+    done
+  fi
+  if [[ "${_queue[*]}" == "" ]]; then
+    _msg_error \
+      "error processing file for upload" \
+      1
+  fi
+  _msg=(
+    "upload queue: ${_queue[*]}"
+  )
+  _msg_info \
+    "${_msg[*]}"
+}
+
+_chunks_publish() {
+  local \
+    _chunk \
+    _index \
+    _passed_flag \
+    _payload \
+    _msg=()
+  _index=0
+  for _chunk \
+    in "${_queue[@]}"; do
+    IFS= \
+    read \
+      -rd \
+        '' \
+      _payload < \
+      <( cat \
+           "${_chunk}") || \
+      true
+    _msg=(
+      "checking chunk '${_chunk}'"
+      "$(( "${_index}" + 1 ))"
+      "of ${_total_chunks}"
+    )
+    _msg_info \
+      "${_msg[*]}"
+    _chunk_check_opts=(
+      "${_fs_address}"
+      "${_namespace}"
+      "${_sum}"
+      "${_index}"
+      "${_chunk}"
+    )
+    _chunk_check \
+      "${_chunk_check_opts[@]}"
+    if [[ "${_passed_flag}" == "true" ]]; then
+      _msg=(
+        "chunk '${_chunk}' correctly published"
+        "already at index '${_index}'"
+      )
+      _msg_info \
+        "${_msg[*]}"
+    elif [[ "${_passed_flag}" == "false" ]]; then
+      _msg=(
+        "publishing chunk '${_chunk}'"
+        "$(( "${_index}" + 1 ))"
+        "of ${_total_chunks}"
+      )
+      _msg_info \
+        "${_msg[*]}"
+      _chunk_publish_opts=(
+        "${_fs_address}"
+        "${_namespace}"
+        "${_sum}"
+        "${_index}"
+        "${_payload}"
+      )
+      _chunk_publish \
+        "${_chunk_publish_opts[@]}"
+      _msg=(
+        "published chunk"
+        "$(( ${_index} + 1))"
+        "of ${_total_chunks}"
+      )
+      _msg_info \
+        "${_msg[*]}"
+    fi
+    _index="$(( \
+      _index + 1))"
+  done
+  _msg=(
+    "all '${_total_chunks}' chunks"
+    "correctly published"
+  )
+  _msg_info \
+    "${_msg[*]}"
+}
+
+_chunks_verify() {
+  local \
+    _index \
+    _chunk \
+    _msg=()
+  _index=0
+  for _chunk \
+    in "${_queue[@]}"; do
+    _msg=(
+      "verifying chunk '${_chunk}'"
+      "of ${_total_chunks}"
+    )
+    _msg_info \
+      "${_msg[*]}"
+    _chunk_verify_opts=(
+      "${_fs_address}"
+      "${_namespace}"
+      "${_sum}"
+      "${_index}"
+      "${_chunk}"
+    )
+    _chunk_verify \
+      "${_chunk_verify_opts[@]}"
+    _msg=(
+      "verified chunk '${_chunk}'"
+      "$(( "${_index}" + 1 ))"
+      "of ${_total_chunks}"
+    )
+    _msg_info \
+      "${_msg[*]}"
+    _index="$(( \
+      _index + 1))"
+  done
+  _msg=(
+    "all '${_total_chunks}' chunks"
+    "correctly verified"
+  )
+  _msg_info \
+    "${_msg[*]}"
+}
+
+_chunks_lock() {
+  local \
+    _index \
+    _chunk \
+    _locked \
+    _msg=()
+  _index=0
+  for _chunk \
+    in "${_queue[@]}"; do
+    _msg=(
+      "locking chunk '${_chunk}'"
+      "$(( "${_index}" + 1))"
+      "of ${_total_chunks}"
+    )
+    _msg_info \
+      "${_msg[*]}"
+    _locked="$( \
+      evm-contract-call \
+        "${_check_call_opts[@]}" \
+        "${_fs_address}" \
+        "lock" \
+        "${_namespace}" \
+        "${_sum}" \
+        "${_index}")"
+    if [[ "${_locked}" == "false" ]]; then
+      _chunk_lock \
+        "${_fs_address}" \
+        "${_namespace}" \
+        "${_sum}" \
+        "${_index}"
+      _msg=(
+        "chunk '${_chunk}'"
+        "$(( "${_index}" + 1))"
+        "of ${_total_chunks}"
+        "correctly locked."
+      )
+      _msg_info \
+        "${_msg[*]}"
+    elif [[ "${_locked}" == "true" ]]; then
+      _msg=(
+        "chunk '${_chunk}'"
+        "$(( "${_index}" + 1))"
+        "of ${_total_chunks}"
+        "already locked."
+      )
+      _msg_info \
+        "${_msg[*]}"
+    elif [[ "${_locked}" == "" ]]; then
+      _msg=(
+        "Error retrieving lock state"
+        "for chunk '${_chunk}'"
+        "$(( "${_index}" + 1))"
+      )
+      _msg_error \
+        "${_msg[*]}" \
+        1
+    fi
+    _index="$(( \
+      _index + 1))"
+  done
+  _msg=(
+    "all '${_total_chunks}' chunks"
+    "correctly locked."
+  )
+  _msg_info \
+    "${_msg[*]}"
+}
+
+_chunk_check() {
+  local \
+    _contract="${1}" \
+    _namespace="${2}" \
+    _sum="${3}" \
+    _index="${4}" \
+    _chunk="${5}" \
+    _remote \
+    _check_dir \
+    _local_sum \
+    _remote_sum \
+    _msg=()
+  _passed_flag="false"
+  _check_dir="${_cache_dir}/${_sum}/check"
+  _remote="${_check_dir}/${_index}"
+  mkdir \
+    -p \
+    "${_check_dir}"
+  evm-contract-call \
+    "${_check_call_opts[@]}" \
+    "${_fs_address}" \
+    "chunks" \
+    "${_namespace}" \
+    "${_sum}" \
+    "${_index}" > \
+    "${_remote}"
+  _local_sum="$( \
+    _file_hash \
+      "${_chunk}")"
+  _remote_sum="$( \
+    _file_hash \
+      "${_remote}")"
+  if [[ "${_local_sum}" == "${_remote_sum}" ]]; then
+    _passed_flag="true"
+  fi
+}
+
+_file_upload_standalone() {
+  local \
+    _target_network="${1}" \
+    _fs_address="${2}" \
+    _namespace="${3}" \
+    _file="${4}" \
+    _abi="${5}" \
+    _bytecode="${6}" \
+    _compiler_output="${7}" \
+    _msg=() \
+    _sum \
+    _queue=() \
+    _total_chunks \
+    _chunk \
+    _payload \
+    _chunk_prefix \
+    _many_chunks \
+    _tmp_dir \
+    _bin2txt_opts=() \
+    _evm_contract_call_opts=() \
+    _check_call_opts=() \
+    _publish_call_opts=() \
+    _verify_call_opts=() \
+    _lock_call_opts=() \
+    _chunk_publish_opts=()
+  _many_chunks="false"
+  _contract_call_opts_setup
+  _msg=(
+    "re-evaluating file hashsum"
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _sum="$( \
+    _file_hash \
+      "${_file}")"
+  _work_dir_setup
+  _file_encode
+  _queue_setup
+  _chunks_publish
+  _chunks_verify
+  _chunks_lock
+  _msg=(
+    "file '${_file}' uploaded and"
+    "available at URI"
+    "'$(_publishing_address_get)'"
+  )
+  _msg_info \
+    "${_msg[*]}"
+}
+
+# TODO:
+_bulk_chunk_publish() {
+  local \
+    _fs_address="${1}" \
+    _namespace="${2}" \
+    _sum="${3}" \
+    _index="${4}" \
+    _chunk="${5}" \
+    _publish \
+    _publish_args=()
+  _publish="$( \
+    _get_lib)/evmfs/publish"
+  _publish_args+=(
+    # wallet_seed_path,
+    # api_key_path,
+    # target_network,
+    # contract_address,
+    # contract_abi_path,
+    # contract_bytecode_path,
+    # publication_namespace,
+    # file_hash,
+    # file_chunks,
+    #
+    # "${_fs_address}"
+    # "${_namespace}"
+    # "${_sum}"
+    # "${_index}"
+    # "${_chunk}"
+  )
+  _node_run \
+    "${_publish}" \
+    "${_publish_args[@]}"
+}
+
+_abi_get() {
+  local \
+    _deployments="${1}" \
+    _network="${2}" \
+    _name="${3}" \
+    _version="${4}"
+  echo \
+    "${_deployments}/${_name}/${_network}/${_version}/${_name}.abi.json"
+}
+
+_bytecode_get() {
+  local \
+    _deployments="${1}" \
+    _network="${2}" \
+    _name="${3}" \
+    _version="${4}"
+  echo \
+    "${_deployments}/${_name}/${_network}/${_version}/${_name}.bin"
+}
+
+_compiler_output_get() {
+  local \
+    _deployments="${1}" \
+    _network="${2}" \
+    _name="${3}" \
+    _version="${4}"
+  echo \
+    "${_deployments}/${_name}/${_network}/${_version}/${_name}.json"
+}
+
+_evmfs_publish() {
+  local \
+    _fs_address="${1}" \
+    _fs_version="${2}" \
+    _deployments_dir="${3}" \
+    _wallet_name="${4}" \
+    _wallet_path="${5}" \
+    _wallet_password="${6}" \
+    _wallet_seed="${7}" \
+    _target_network="${8}" \
+    _api_key_path="${9}" \
+    _upload_method="${10}" \
+    _cache_dir="${11}" \
+    _target_file="${12}" \
+    _command_args=() \
+    _cmd \
+    _args=() \
+    _namespace \
+    _fs_abi \
+    _fs_bytecode \
+    _fs_compiler_output
+  shift \
+    12
+  _command_args+=(
+    "$@"
+  )
+  _namespace="$( \
+    evm-wallet \
+     get \
+       "${_wallet_name}" \
+       "address")"
+  _fs_abi="$( \
+    _abi_get \
+      "${_deployments_dir}" \
+      "${_target_network}" \
+      "FileSystem" \
+      "${_fs_version}")"
+  _fs_bytecode="$( \
+    _bytecode_get \
+      "${_deployments_dir}" \
+      "${_target_network}" \
+      "FileSystem" \
+      "${_fs_version}")"
+  _fs_compiler_output="$( \
+    _compiler_output_get \
+      "${_deployments_dir}" \
+      "${_target_network}" \
+      "FileSystem" \
+      "${_fs_version}")"
+  if [[ "${_upload_method}" == "standalone" ]]; then
+    _file_upload_standalone \
+      "${_target_network}" \
+      "${_fs_address}" \
+      "${_namespace}" \
+      "${_target_file}" \
+      "${_fs_abi}" \
+      "${_fs_bytecode}" \
+      "${_fs_compiler_output}"
+  elif [[ "${_upload_method}" == "simulate" ]]; then
+    echo \
+      "$(_publishing_address_get)"
+  else
+    _msg_error \
+      "unknown upload method '${_upload_method}'"
+  fi
+}
+
+_wallet_path_get() {
+  local \
+    _path \
+    _name
+  _name="$( \
+    _get \
+      "wallet" \
+      "name")"
+  _path="${HOME}/.config/evm-wallet/${_name}.dat"
+  echo \
+    "${_path}"
+}
+
+_secret_get() {
+  local \
+    _secret="${1}" \
+    _path \
+    _name
+  _name="$( \
+    _get \
+      "wallet" \
+      "name")"
+  _path="${HOME}/.config/evm-wallet/${_name}-${_secret}.txt"
+  echo \
+    "${_path}"
+}
+
+_api_key_auto_detect() {
+  local \
+    _chain="${1}" \
+    _chain_name \
+    _key \
+    _msg=()
+  _key="$( \
+    evm-chains-explorers \
+      -c \
+        "${_chain}" \
+      -s \
+        'kirsh' \
+      get \
+        keys)"
+  _chain_name="$( \
+    evm-chains-info \
+      -o \
+        "name" \
+      "${_chain}")"
+  if [[ ! -e "${_key}" ]]; then
+    _msg=(
+      "Found no provider services"
+      "keys for chain '${_chain_name}'."
+      "Check available service"
+      "providers with \"evm-chains-info"
+      "-o explorers '${_chain}'\""
+      "and add the relative api key in"
+      "'<user_home>/.config/evm-chains-explorers/<service>/default.txt'"
+    )
+    _msg_info \
+      "${_msg[*]}"
+  fi
+  _set_override \
+    "api" \
+    "key" \
+    "${_key}"
+}
+
+_secret_auto_detect() {
+  local \
+    _secret="${1}" \
+    _secret_type="${2}" \
+    _dir \
+    _key_gen_opts=() \
+    _msg=()
+  _path="$( \
+    _secret_get \
+      "${_secret}")"
+  _dir="$( \
+    dirname \
+      "${_path}")"
+  if [[ ! -e "${_path}" ]]; then
+    _key_gen_opts+=(
+      -t
+        "${_secret_type}"
+    )
+    _msg=(
+      "generating ${_secret} '${_path}'"
+    )
+    if [[ "${quiet}" == "n" ]]; then
+      _msg_info \
+        "${_msg[*]}"
+    fi
+    mkdir \
+      -p \
+      "${_dir}"
+    chmod \
+      700 \
+      "${_dir}"
+    chmod \
+      700 \
+      "${_dir}"
+    key-gen \
+      "${_key_gen_opts[@]}" \
+      "${_path}"
+    chmod \
+      400 \
+      "${_path}"
+    _msg=(
+      "${_secret} '${_path}' successfully generated"
+    )
+    if [[ "${quiet}" == "n" ]]; then
+      _msg_info \
+        "${_msg[*]}"
+    fi
+  fi
+  _set_override \
+    "wallet" \
+    "${_secret}" \
+    "${_path}"
+}
+
+_deployments_dir_auto_detect() {
+  local \
+    _user_level \
+    _evm_contract_deployments_dir_opts=() \
+    _deployments_dir \
+    _system_deployments
+  _user_level="$( \
+    _get \
+      "user" \
+      "level")"
+  if [[ "${_user_level}" == "y" ]]; then
+    _evm_contract_deployments_dir_opts+=(
+      -u
+    )
+  fi
+  _deployments_dir="$( \
+    evm-contract-deployments-dir \
+      "${_evm_contract_deployments_dir_opts[@]}" \
+      "evmfs")"
+  if [[ ! -d "${_deployments_dir}" ]]; then
+    _system_deployments="$( \
+     evm-contract-deployments-dir \
+       "evmfs")"
+    _msg=(
+      "user deployments directory"
+      "'${_deployments_dir}' does"
+      "not exists, importing system deployments"
+      "directory '${_system_deployments}'"
+    )
+    _msg_info \
+      "${_msg[*]}"
+    mkdir \
+      -p \
+      "${_deployments_dir}"
+    chmod \
+      700 \
+      "${_deployments_dir}"
+    cp \
+     -r \
+     "${_system_deployments}/"* \
+     "${_deployments_dir}"
+  fi
+  _set_override \
+    "deployments" \
+    "dir" \
+    "${_deployments_dir}"
+}
+
+_network_auto_detect() {
+  local \
+    _contract \
+    _contract_deployment \
+    _deployments \
+    _user \
+    _msg=()
+  _contract="FileSystem"
+  _deployments="$( \
+    _get \
+      "deployments" \
+      "dir")"
+  _contract_deployment="${_deployments}/${_contract}"
+  _user="$( \
+    _get \
+      "user" \
+      "level")"
+  if [[ "${_user}" == "y" ]]; then
+    _msg=(
+     "User deployments enabled, looking"
+     "for cheapest network deployments at" 
+     "path '${_contract_deployment}'"
+   )
+   _msg_info \
+     "${_msg[*]}"
+  fi
+  _network="$( \
+    evm-contract-deployment-networks \
+      -C \
+      "${_contract_deployment}")"
+  if [[ "${_user}" == "y" ]]; then
+    _msg=(
+      "Found network '${_network}'"
+    )
+    _msg_info \
+      "${_msg[*]}"
+  fi
+  _set_override \
+    "target" \
+    "network" \
+    "${_network}"
+}
+
+_fs_version_auto_detect() {
+  local \
+    _config \
+    _deployments \
+    _network \
+    _version
+  _deployments="$( \
+    _get \
+      "deployments" \
+      "dir")"
+  _network="$( \
+    _get \
+      "target" \
+      "network")"
+  _config="${_deployments}/FileSystem/${_network}/config.sh"
+  _version="$( \
+    evm-contract-deployment-versions \
+      -H \
+      "${_config}")"
+  _set_override \
+    "fs" \
+    "version" \
+    "${_version}"
+}
+
+_fs_address_auto_detect() {
+  local \
+    _address \
+    _network \
+    _deployments \
+    _user \
+    _version \
+    _evm_contract_deployment_address_opts=() \
+    _msg=()
+  _network="$( \
+    _get \
+      "target" \
+      "network")"
+  _evm_contract_deployment_address_opts+=(
+    -n
+      "${_network}"
+  )
+  _version="$( \
+    _get \
+      "fs" \
+      "version")"
+  if [[ "${_version}" != "" ]]; then
+    _evm_contract_deployment_address_opts+=(
+      -V
+        "${_version}"
+    )
+  fi
+  _user="$( \
+    _get \
+      "user" \
+      "level")"
+  if [[ "${_user}" == "n" ]]; then
+    _evm_contract_deployment_address_opts+=(
+      -a
+        "evmfs"
+    )
+  elif [[ "${_user}" == "y" ]]; then
+    _deployments="$( \
+      _get \
+        "deployments" \
+        "dir")"
+    _evm_contract_deployment_address_opts+=(
+      -u
+      -d
+        "${_deployments}" 
+    )
+  fi
+  _address="$( \
+    evm-contract-deployment-address \
+      "${_evm_contract_deployment_address_opts[@]}" \
+      "FileSystem")"
+  if [[ "${_address}" == "" ]]; then
+    _msg=(
+      "error getting FileSystem version"
+      "${_version} deployment address"
+      "for network '${_network}'"
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+  _set_override \
+    "fs" \
+    "address" \
+    "${_address}"
+}
+
+_set_overrides() {
+  if [[ -v override_quiet ]]; then
+    quiet="${override_quiet}"
+  elif [[ -z "${quiet}" ]]; then
+    quiet="y"
+  fi
+  if [[ -v override_color ]]; then
+    color="${override_color}"
+  elif [[ -z "${color}" ]]; then
+    color="n"
+  fi
+  _set_override \
+    "call" \
+    "date" \
+    "$(_get_date_human)"
+  _set_override \
+    "wallet" \
+    "name" \
+    "default"
+  _set_override \
+    "user" \
+    "level" \
+    "n"
+  _deployments_dir_auto_detect
+  _network_auto_detect
+  _api_key_auto_detect \
+    "$(_get \
+         "target" \
+         "network")"
+  _set_override \
+    "wallet" \
+    "path" \
+    "$(_wallet_path_get)"
+  _secret_auto_detect \
+    "seed" \
+    "seed"
+  _secret_auto_detect \
+    "password" \
+    "plain"
+  _set_override \
+    "wallet" \
+    "address" \
+    "$(evm-wallet \
+         get \
+           "${wallet_name}" \
+           "address")"
+  _set_override \
+    "cache" \
+    "dir" \
+    "$(_cache_dir_auto_detect)"
+  _set_override \
+    "upload" \
+    "method" \
+    "standalone"
+  _fs_version_auto_detect
+  _fs_address_auto_detect
+}
+
+# Show help usage, with an exit status.
+# $1: exit status number.
+_usage() {
+  local \
+    _fs_deployment \
+    _networks \
+    _usage_text
+  _fs_deployment="$( \
+    _get \
+      "deployments" \
+      "dir")/FileSystem"
+  _networks="$( \
+    evm-contract-deployment-networks \
+      -A \
+      "${_fs_deployment}")"
+  IFS='' \
+    read \
+      -r \
+      -d '' \
+      _usage_text << \
+        ENDUSAGETEXT || true
+EVM network file system file publisher
+
+Usage:
+  $(_get "app" "name")
+    [options]
+    <file>
+
+  networks:
+$(_display_networks \
+     "${_networks[*]}")
+
+  options:
+     -A <fs_address>        Address of the EVM file system
+                            on the network.
+                            Default: $(_get "fs" "address")
+     -V <fs_version>        Version of the target EVM file
+                            system.
+                            Default: $(_get "fs" "version")
+     -u                     Whether to retrieve file system
+                            address from user directory or custom
+                            deployment.
+                            Default: $(_get "user" "level")
+     -d <deployments_dir>   Contracts deployments directory.
+                            Default: $(_get "deployments" "dir")
+     -N <wallet_name>       Wallet name.
+                            Default: $(_get "wallet" "name")
+     -w <wallet_path>       Wallet path.
+                            Default: $(_get "wallet" "path")
+     -p <wallet_password>   Wallet password.
+                            Default: $(_get "wallet" "password")
+     -s <wallet_seed>       Wallet seed path.
+                            Default: $(_get "wallet" "seed")
+     -n <network>           EVM network name (${_networks[*]}).
+                            Default: $(_get "target" "network")
+     -k <api_key>           Etherscan-like service key.
+                            Default: $(_get "api" "key")
+     -m <upload_method>     It can be 'standalone' or 'simulate'
+                            Default: $(_get "upload" "method")
+     -C <cache_dir>         Work directory
+                            Default: $(_get "cache" "dir")
+
+     -h                     This message.
+     -c                     Enable color output
+     -v                     Enable verbose output
+ENDUSAGETEXT
+  _printf \
+    '%s\n' \
+    "${_usage_text}"
+  exit \
+    "${1}"
+}
+
+_publishing_address_get() {
+  local \
+    _network \
+    _fs_address \
+    _namespace \
+    _file \
+    _sum
+  _network="$( \
+    _get \
+      "target" \
+      "network")"
+  _fs_address="$( \
+    _get \
+      "fs" \
+      "address")"
+  _namespace="$( \
+    _get \
+      "wallet" \
+      "address")"
+  _file="$( \
+    _get \
+      "target" \
+      "file")"
+  _sum="$( \
+    _file_hash \
+      "${_file}")"
+  echo \
+    "evmfs://${_network}/${_fs_address}/${_namespace}/${_sum}"
+}
+
+_display_flags() {
+  local \
+    _flag \
+    _flags=(
+      "${1}"
+    )
+  for _flag \
+    in "${_flags[@]}"; do
+  _msg_info \
+    "                             ${_flag}"
+  done
+}
+
+_display_networks() {
+  local \
+    _network \
+    _network_name \
+    _networks=(
+      "${1}"
+    )
+  for _network \
+    in "${_networks[@]}"; do
+    _network_name="$( \
+      evm-chains-info \
+        -i \
+          "id" \
+        -o \
+          "name" \
+        "${_network}")"
+  echo \
+    "    ${_network_name}"
+  done
+}
+
+# Shows configuration options.
+_show_config() {
+  _msg_info "${app_name} configuration"
+  _msg_info "             Publish date:   $(_get "publish" "date")"
+  _msg_info "       Publishers address:   $(_get "up" "address")"
+  _msg_info "       Publishers version:   $(_get "up" "version")"
+  _msg_info "               User level:   $(_get "user" "level")"
+  _msg_info "    Deployments directory:   $(_get "deployments" "dir")"
+  _msg_info "                Namespace:   $(_get "wallet" "address")"
+  _msg_info "              Wallet name:   $(_get "wallet" "name")"
+  _msg_info "              Wallet path:   $(_get "wallet" "path")"
+  _msg_info "          Wallet password:   $(_get "wallet" "password")"
+  _msg_info "              Wallet seed:   $(_get "wallet" "seed")"
+  _msg_info "           Target network:   $(_get "target" "network")"
+  _msg_info "                  API key:   $(_get "api" "key")"
+  _msg_info "            Upload method:   $(_get "upload" "method")"
+  _msg_info "          Cache directory:   $(_get "cache" "dir")"
+  _msg_info "              Target file:   $(_get "target" "file")"
+  _msg_info "       Publishing address:   $(_publishing_address_get)"
+}
+
+_globals
+_global_variables
+_requirements
+_config_user_init \
+  "$(_get \
+       "app" \
+       "name")"
+# shellcheck disable=SC2034
+while \
+  getopts \
+    'A:V:ud:N:w:p:s:n:k:m:C:cvh?' \
+    arg; do
+  case \
+    "${arg}" in
+    A) override_up_address="${OPTARG}" ;;
+    V) override_up_version="${OPTARG}" ;;
+    u) override_user_level="y" ;;
+    d) override_deployments_dir="${OPTARG}" ;;
+    N) override_wallet_name="${OPTARG}" ;;
+    w) override_wallet_path="${OPTARG}" ;;
+    p) override_wallet_password="${OPTARG}" ;;
+    s) override_wallet_seed="${OPTARG}" ;;
+    n) override_target_network="${OPTARG}" ;;
+    k) override_api_key="${OPTARG}" ;;
+    C) override_cache_dir="${OPTARG}" ;;
+    c) override_color="y" ;;
+    v) override_quiet="n" ;;
+    h|?) _set_overrides && \
+         _usage \
+           0 ;;
+    *)
+    _msg_error \
+      "Invalid argument '${arg}'" \
+      0
+    _usage \
+      1
+    ;;
+  esac
+done
+shift \
+  $(( \
+    OPTIND - 1 \
+  ))
+if (( $# < 1 )); then
+  _msg_error \
+    "no command given" \
+    0
+  _set_overrides
+  _usage \
+    1
+fi
+if (( 0 < $# )); then
+  _set \
+    "target" \
+    "command" \
+    "${1}"
+fi
+shift \
+  1 || \
+  true
+command_args+=(
+  "$@"
+)
+_set_overrides
+_show_config
+app_opts=(
+  "$(_get \
+       "up" \
+       "address")"
+  "$(_get \
+       "up" \
+       "version")"
+  "$(_get \
+       "deployments" \
+       "dir")"
+  "$(_get \
+       "wallet" \
+       "name")"
+  "$(_get \
+       "wallet" \
+       "path")"
+  "$(_get \
+       "wallet" \
+       "password")"
+  "$(_get \
+       "wallet" \
+       "seed")"
+  "$(_get \
+       "target" \
+       "network")"
+  "$(_get \
+       "api" \
+       "key")"
+  "$(_get \
+       "cache" \
+       "dir")"
+  "$(_get \
+       "target" \
+       "command")"
+  "$(_get \
+       "target" \
+       "value")"
+)
+_ur_publishers \
+  "${app_opts[@]}"
+
+# vim:set sw=2 sts=-1 et:
