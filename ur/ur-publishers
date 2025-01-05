@@ -33,6 +33,7 @@ _global_variables() {
   gnupg_private=""
   key_publish=""
   user_name=""
+  key_fingerprint=""
   full_name=""
   target_command=""
   target_key=""
@@ -54,6 +55,9 @@ _requirements() {
     'evm-contracts-tools'
   _check_cmd \
     'evm-wallet'
+  _check_cmd \
+    'evm-openpgp-key-publish' \
+    'evm-openpgp-keyserver'
   _check_cmd \
     'evm-openpgp-key-receive' \
     'evm-openpgp-keyserver'
@@ -395,21 +399,140 @@ _key_private_new() {
       "${_full_name}"
 }
 
+_keys_public_check() {
+  local \
+    _gnupg_home="${1}" \
+    _user_name="${2}" \
+    _key_fingerprint="${3}" \
+    _gpg_opts=() \
+    _available \
+    _email \
+    _msg=() \
+    _target
+  _key_published="n"
+  if [[ "${_email}" == "" && \
+        "${_key_fingerprint}" == "" ]]; then
+    _user_name="*"
+    _msg=(
+      "no username or fingerprint"
+      "selected, if any"
+      "key has already been published"
+      "no new one will."
+      "If you want to publish a new"
+      "key for an existing username"
+      "use 'evm-openpgp-key-publish'"
+      "directly."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+  fi
+  _email="${_user_name}@${_target_address}"
+  _target="${_email}"
+  if [[ "${_key_fingerprint}" != "" ]]; then
+    _target="${_key_fingerprint}"
+  fi
+  _gpg_opts+=(
+    --homedir
+      "${_gnupg_home}"
+    --list-keys
+    --with-colons
+  )
+  _available="$( \
+    gpg \
+      "${_gpg_opts[@]}" \
+      "${_target}" | \
+      grep \
+        "^pub" || \
+      true)"
+  if [[ "${_available}" != "" ]]; then
+    _msg=(
+      "Key for id '${_target}'"
+      "already published."
+      "If you want to upload a new"
+      "one use 'evm-openpgp-key-publish'."
+    )
+    _msg_info \
+      "${_msg[*]}"
+    _key_published="y"
+  fi
+}
+
 _key_publish_check() {
   local \
-    _user_name="${1}" \
-    _full_name="${2}" \
-    keys_private \
-    _msg=()
+    _target_address="${1}" \
+    _user_name="${2}" \
+    _key_fingerprint="${3}" \
+    _full_name="${4}" \
+    _gnupg_home="${5}" \
+    _gnupg_private="${6}" \
+    _keys_private
   if [[ "${_key_publish}" == "y" ]]; then
-    _keys_private_check \
-      "${_user_name}"
-    if [[ "${_keys_private}" == "n" ]]; then
-      _key_private_new \
-        "${_user_name}" \
-        "${_full_name}"
+    _keys_public_check \
+      "${_user_name}@${_target_address}" \
+      "${_key_fingerprint}"
+    if [[ "${_key_published}" == "n" ]]; then
+      _keys_private_check \
+        "${_user_name}"
+      if [[ "${_keys_private}" == "n" ]]; then
+        _key_private_new \
+          "${_user_name}" \
+          "${_full_name}"
+      fi
     fi
   fi
+}
+
+_key_public_publish() {
+  local \
+    _evm_openpgp_key_publish_opts=() \
+    _gpg_opts=() \
+    _email \
+    _target_key
+  if [[ "${quiet}" == "n" ]]; then
+    _evm_openpgp_key_publish_opts+=(
+      -v
+    )
+  fi
+  _gpg_opts+=(
+    --homedir
+      "${_gnupg_private}"
+    --export
+    --armor
+  )
+  _evm_openpgp_key_publish_opts+=(
+    -N
+      "${_wallet_name}"
+    -w
+      "${_wallet_path}"
+    -s
+      "${_wallet_seed}"
+    -n
+      "${_target_network}"
+    -k
+      "${_api_key}"
+    -H
+      "${_gnupg_private}"
+  )
+  if [[ "${_key_fingerprint}" != "" ]]; then
+    _evm_openpgp_key_publish_opts+=(
+      -t
+        "fingerprint"
+    )
+    _target_key="${_key_fingerprint}"
+  else
+    _evm_openpgp_key_publish_opts+=(
+      -t
+        "file"
+    )
+    _email="${_user_name}@${_target_address}"
+    _target_key="${_work_dir}/${_email}.asc"
+    gpg \
+      "${_gpg_opts[@]}" > \
+      "${_target_key}"
+  fi
+  evm-openpgp-key-publish \
+    "${_evm_openpgp_key_publish_opts[@]}" \
+    "${_target_key}"
 }
 
 _publisher_list() {
@@ -430,9 +553,8 @@ _publisher_list() {
       "Address '${_target_address}'"
       "already registered as a publisher."
     )
-    _msg_error \
-      "${_msg[*]}" \
-      1
+    _msg_warning \
+      "${_msg[*]}"
   elif [[ "${_publisher_id}" != "0" ]]; then
     evm-contract-call \
       "${_check_call_opts[@]}" \
@@ -440,7 +562,6 @@ _publisher_list() {
       "listPackager" \
       "${_target_address}"
   fi
- 
 }
 
 _publisher_register() {
@@ -450,16 +571,42 @@ _publisher_register() {
     _up_abi="${3}" \
     _up_bytecode="${4}" \
     _up_compiler_output="${5}" \
-    _cache_dir="${6}" \
-    _gnupg_private="${7}" \
-    _key_publish="${8}" \
-    _user_name="${9}" \
-    _full_name="${10}" \
-    _target_address="${11}"
+    _work_dir="${6}" \
+    _gnupg_home="${7}" \
+    _gnupg_private="${8}" \
+    _key_publish="${9}" \
+    _user_name="${10}" \
+    _key_fingerprint="${11}"
+    _full_name="${12}" \
+    _target_address="${13}" \
+    _key_published \
+    _key_fingerprint \
+    _msg=()
+  _msg=(
+    "Registering publisher"
+    "'${_publisher}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _publishers_update \
+    "${_target_network}" \
+    "${_up_address}" \
+    "${_up_abi}" \
+    "${_up_bytecode}" \
+    "${_up_compiler_output}" \
+    "${_work_dir}" \
+    "${_gnupg_home}"
   _key_publish_check \
+    "${_target_address}" \
     "${_user_name}" \
-    "${_full_name}"
+    "${_key_fingerprint}" \
+    "${_full_name}" \
+    "${_gnupg_home}" \
+    "${_gnupg_private}"
   _publisher_list
+  if [[ "${_key_published}" == "n" ]]; then
+    _key_public_publish
+  fi
 }
 
 _ur_publishers() {
@@ -478,10 +625,11 @@ _ur_publishers() {
     _gnupg_private="${12}" \
     _key_publish="${13}" \
     _user_name="${14}" \
-    _full_name="${15}" \
-    _target_command="${16}" \
-    _target_key="${17}" \
-    _target_value="${18}" \
+    _key_fingerprint="${15}" \
+    _full_name="${16}" \
+    _target_command="${17}" \
+    _target_key="${18}" \
+    _target_value="${19}" \
     _command_args=() \
     _cmd \
     _args=() \
@@ -492,7 +640,7 @@ _ur_publishers() {
     _up_bytecode \
     _up_compiler_output
   shift \
-    18
+    19
   _command_args+=(
     "$@"
   )
@@ -564,9 +712,11 @@ _ur_publishers() {
       "${_up_bytecode}" \
       "${_up_compiler_output}" \
       "${_cache_dir}" \
+      "${_gnupg_home}" \
       "${_gnupg_private}" \
       "${_key_publish}" \
       "${_user_name}" \
+      "${_fingerprint}" \
       "${_full_name}" \
       "${_target_address}"
   else
@@ -707,6 +857,10 @@ _set_overrides() {
     "full" \
     "name" \
     ""
+  _set_override \
+    "key" \
+    "fingerprint" \
+    ""
 }
 
 # Show help usage, with an exit status.
@@ -838,7 +992,7 @@ _requirements
 # shellcheck disable=SC2034
 while \
   getopts \
-    'A:V:ud:N:w:p:s:n:k:C:H:G:P:U:F:cvh?' \
+    'A:V:ud:N:w:p:s:n:k:C:H:G:P:U:f:F:cvh?' \
     arg; do
   case \
     "${arg}" in
@@ -857,6 +1011,7 @@ while \
     G) override_gnupg_private="${OPTARG}" ;;
     P) override_key_publish="${OPTARG}" ;;
     U) override_user_name="${OPTARG}" ;;
+    f) override_key_fingerprint="${OPTARG}" ;;
     F) override_full_name="${OPTARG}" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
@@ -953,6 +1108,9 @@ app_opts=(
   "$(_get \
        "user" \
        "name")"
+  "$(_get \
+       "key" \
+       "fingerprint")"
   "$(_get \
        "full" \
        "name")"
