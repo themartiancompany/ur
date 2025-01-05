@@ -375,7 +375,7 @@ _key_private_new() {
       "No full name specified for"
       "private key creation."
       "Re-run the program with option"
-      "-F <user_name>."
+      "-U <user_name>."
     )
     _msg_error \
       "${_msg[*]}" \
@@ -576,7 +576,7 @@ _publisher_register() {
     _gnupg_private="${8}" \
     _key_publish="${9}" \
     _user_name="${10}" \
-    _key_fingerprint="${11}"
+    _key_fingerprint="${11}" \
     _full_name="${12}" \
     _target_address="${13}" \
     _key_published \
@@ -811,7 +811,7 @@ _set_overrides() {
   _set_override \
     "gnupg" \
     "private" \
-    "$(_config_dir_auto_detect)/gnupg"
+    "$(_conf_dir_auto_detect)/gnupg"
   _contract_version_auto_detect \
     "$(_get \
          "deployments" \
@@ -931,10 +931,20 @@ $(_display_networks \
                             Default: $(_get "target" "network")
      -k <api_key>           Etherscan-like service key.
                             Default: $(_get "api" "key")
-     -C <cache_dir>         Work directory
+     -C <cache_dir>         Work directory.
                             Default: $(_get "cache" "dir")
-     -H <gnupg_home>        GNUPG home directory
+     -H <gnupg_home>        GNUPG home directory.
                             Default: $(_get "gnupg" "home")
+     -G <gnupg_private>     GNUPG private home directory.
+                            Default: $(_get "gnupg" "private")
+     -P <y/n>               Whether to publish key.
+                            Default: $(_get "key" "publish")
+     -U <user_name>         Publisher's key username.
+                            Default: $(_get "user" "name")
+     -f <key_fingerprint>   Publisher's key fingerprint.
+                            Default: $(_get "key" "fingerprint")
+     -F <full_name>         Publisher's key full name.
+                            Default: $(_get "full" "name")
 
      -h                     This message.
      -c                     Enable color output
@@ -968,7 +978,7 @@ _show_config() {
   _msg_info "       Publishers version:   $(_get "up" "version")"
   _msg_info "               User level:   $(_get "user" "level")"
   _msg_info "    Deployments directory:   $(_get "deployments" "dir")"
-  _msg_info "                Namespace:   $(_get "wallet" "address")"
+  _msg_info "           Wallet address:   $(_get "wallet" "address")"
   _msg_info "              Wallet name:   $(_get "wallet" "name")"
   _msg_info "              Wallet path:   $(_get "wallet" "path")"
   _msg_info "          Wallet password:   $(_get "wallet" "password")"
@@ -979,8 +989,9 @@ _show_config() {
   _msg_info "          GNUPG directory:   $(_get "gnupg" "home")"
   _msg_info "  GNUPG private directory:   $(_get "gnupg" "private")"
   _msg_info "              Publish key:   $(_get "key" "publish")"
-  _msg_info "                 Username:   $(_get "user" "name")"
-  _msg_info "                Full name:   $(_get "user" "name")"
+  _msg_info "             Key username:   $(_get "user" "name")"
+  _msg_info "          Key fingerprint:   $(_get "key" "fingerprint")"
+  _msg_info "            Key full name:   $(_get "full" "name")"
   _msg_info "           Target command:   $(_get "target" "command")"
   _msg_info "               Target key:   $(_get "target" "key")"
   _msg_info "             Target value:   $(_get "target" "value")"
