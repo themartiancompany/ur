@@ -24,10 +24,10 @@ contract UserRepositoryPublishers {
     constructor() {}
 
     /**
-     * @dev List a packager.
+     * @dev List a publisher.
      * @param _publisher User Repository Publisher sender is listing.
      */
-    function listPackager(
+    function listPublisher(
       address _publisher)
       public
       payable {
@@ -42,6 +42,7 @@ contract UserRepositoryPublishers {
 	  deployer).transfer(
             msg.value);
       }
+      listed[_publisher] = publisherNo;
       publisher[publisherNo] = _publisher;
       enroller[publisherNo] = msg.sender;
       publisherNo = publisherNo + 1;

@@ -4,15 +4,21 @@
 
 # Generate an ephemeral PGP key for signing the rootfs image
 _generate_ephemeral_pgp_key() {
-  local gnupg_homedir="${1}"
-  local _email="${2}"
-  local _unit="${3}"
-  local _comment="${4}"
+  local \
+    _gnupg_home="${1}" \
+    _email="${2}" \
+    _unit="${3}" \
+    _comment="${4}"
 
-  mkdir -p "${gnupg_homedir}"
-  chmod 700 "${gnupg_homedir}"
-
-  cat << __EOF__ > "${gnupg_homedir}"/gpg.conf
+  mkdir \
+    -p \
+    "${gnupg_home}"
+  chmod \
+    700 \
+    "${gnupg_home}"
+  cat << \
+    __EOF__ > \
+      "${gnupg_home}"/gpg.conf
 quiet
 batch
 no-tty
@@ -22,12 +28,13 @@ list-options no-show-keyring
 armor
 no-emit-version
 __EOF__
-
-  gpg --homedir "${gnupg_homedir}" \
-      --gen-key <<EOF
+  gpg \
+    --homedir \
+      "${gnupg_homedir}" \
+    --gen-key <<EOF
 %echo Generating ephemeral ${_unit} key pair...
 Key-Type: default
-Key-Length: 3072
+Key-Length: 4096
 Key-Usage: sign
 Name-Real: ${_unit}
 Name-Comment: ${_comment}
@@ -39,13 +46,18 @@ Expire-Date: 0
 EOF
 
   # shellcheck disable=SC2034
-  pgp_key_id="$(gpg --homedir "${gnupg_homedir}" \
-                    --list-secret-keys \
-                    --with-colons | \
-                  awk -F':' \
-		      '{if($1 ~ /sec/){ print $5 }}')"
+  pgp_key_id="$( \
+    gpg \
+      --homedir \
+        "${gnupg_homedir}" \
+      --list-secret-keys \
+      --with-colons | \
+      awk \
+        -F':' \
+	'{if($1 ~ /sec/){ print $5 }}')"
   # shellcheck disable=SC2034
-  export pgp_sender="${_unit} (${_comment}) <${_email}>"
+  export \
+    pgp_sender="${_unit} (${_comment}) <${_email}>"
 }
 
 # Generate ephemeral certificates used for codesigning
