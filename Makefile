@@ -152,6 +152,13 @@ install-doc:
 install-scripts:
 
 	$(_INSTALL_EXE) \
+	  "$(_PROJECT)/$(_PROJECT)" \
+	  "$(BIN_DIR)/$(_PROJECT)"
+	$(_INSTALL_EXE) \
+	  "$(_PROJECT)/$(_PROJECT)-publishers" \
+	  "$(BIN_DIR)/$(_PROJECT)-publishers"
+	# the following files will have to be removed
+	$(_INSTALL_EXE) \
 	  "$(_PROJECT)/gen_key.sh" \
 	  "$(LIB_DIR)/gen_key"
 	$(_INSTALL_EXE) \
@@ -163,8 +170,5 @@ install-scripts:
 	$(_INSTALL_EXE) \
 	  "$(_PROJECT)/gen_pacman_conf.sh" \
 	  "$(LIB_DIR)/gen_pacman_conf"
-	$(_INSTALL_EXE) \
-	  "$(_PROJECT)/$(_PROJECT)" \
-	  "$(BIN_DIR)/$(_PROJECT)"
 
 .PHONY: $(_PHONY_TARGETS)
