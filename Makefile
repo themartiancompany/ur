@@ -157,6 +157,9 @@ install-scripts:
 	$(_INSTALL_EXE) \
 	  "$(_PROJECT)/$(_PROJECT)-publishers" \
 	  "$(BIN_DIR)/$(_PROJECT)-publishers"
+	$(_INSTALL_EXE) \
+	  "$(_PROJECT)/$(_PROJECT)-purchase" \
+	  "$(BIN_DIR)/$(_PROJECT)-purchase"
 	# the following files will have to be removed
 	$(_INSTALL_EXE) \
 	  "$(_PROJECT)/gen_key.sh" \
