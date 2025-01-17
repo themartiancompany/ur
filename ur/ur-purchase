@@ -1,0 +1,916 @@
+#!/usr/bin/env bash
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+_bin="$( \
+  dirname \
+    "$( \
+      command \
+        -v \
+	  "env")")"
+_lib="${_bin}/../lib"
+source \
+  "${_lib}/libcrash-bash/crash-bash"
+source \
+  "${_lib}/libevm/libevm"
+
+# shellcheck disable=SC2034
+_global_variables() {
+  purchase_date=""
+  ur_address=""
+  ur_version=""
+  deployments_dir=""
+  user_level=""
+  wallet_name=""
+  wallet_path=""
+  wallet_password=""
+  wallet_seed=""
+  wallet_address=""
+  target_network=""
+  api_key=""
+  cache_dir=""
+  target_publisher=""
+  target_package=""
+  target_revision=""
+  target_recipient=""
+  target_price=""
+  auto_confirm=""
+  measure_unit=""
+  command_args=()
+  color=""
+  quiet=""
+}
+
+_requirements() {
+  _check_cmd \
+    'libevm-requirements'
+  libevm-requirements
+  _check_cmd \
+    'evm-contract-call' \
+    'evm-contracts-tools'
+  _check_cmd \
+    'evm-contract-deployment-networks' \
+    'evm-contracts-tools'
+  _check_cmd \
+    'evm-wallet'
+}
+
+_conf_dir_auto_detect() {
+  local \
+    _dir
+  _dir="${HOME}/.config/ur/purchase"
+  echo \
+    "${_dir}"
+}
+
+_cache_dir_auto_detect() {
+  local \
+    _dir
+  _dir="${HOME}/.cache/ur/purchase"
+  echo \
+    "${_dir}"
+}
+
+_contract_call_opts_setup() {
+  _contract_call_opts+=(
+    -n
+      "${_target_network}"
+    -N
+      "${_wallet_name}"
+    -k
+      "${_api_key_path}"
+    -A
+      "${_abi}"
+    -B
+      "${_bytecode}"
+    -C
+      "${_compiler_output}"
+  )
+}
+
+_recipe_purchase_call_opts_setup() {
+  local \
+    _contract_call_opts=()
+  _contract_call_opts_setup
+  if [[ "${quiet}" == "n" ]]; then
+    _purchase_call_opts+=(
+      -v
+    )
+  fi
+  _data_call_opts+=(
+    "${_contract_call_opts[@]}"
+    -t
+      "static"
+  )
+  _purchase_call_opts+=(
+    "${_contract_call_opts[@]}"
+    -t
+      "dynamic"
+  )
+}
+
+_work_dir_setup() {
+  local \
+    _msg=()
+  _tmp_dir="${_cache_dir}"
+  _msg=(
+    "setting up work directory"
+    "'${_tmp_dir}'"
+  )
+  _msg_info \
+    "${_msg[*]}"
+  chmod \
+    -R \
+    700 \
+    "${_tmp_dir}"
+}
+
+_revision_latest_get() {
+  local \
+    _ur_address="${1}" \
+    _publisher="${2}" \
+    _pkg="${3}" \
+    _msg=() \
+    _revno
+  _msg=(
+    "getting latest revision for"
+    "package '${_pkg}' and publisher"
+    "'${_publisher}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _revno="$( \
+    evm-contract-call \
+      "${_data_call_opts[@]}" \
+      "${_ur_address}" \
+      "revNo" \
+      "${_pkg}" \
+      "${_publisher}")"
+  if [[ "${_revno}" == "0" ]]; then
+    _msg=(
+      "publisher '${_publisher}'"
+      "has published no '${_pkg}'"
+      "package."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  elif (( 0 < "${_revno}" )); then
+    _revision="$(( \
+      _revno - 1))"
+    _msg=(
+      "latest revision for '${_pkg}'"
+      "is '${_revision}'."
+    )
+    _msg_info \
+      "${_msg[*]}"
+  else
+    _msg=(
+      "error while retrieving"
+      "revision for package '${_pkg}'"
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+}
+
+_revision_price_get() {
+  local \
+    _ur_address="${1}" \
+    _publisher="${2}" \
+    _pkg="${3}" \
+    _revision="${4}" \
+    _msg=()
+  _msg=(
+    "getting price for revision '${_revision}'"
+    "of package '${_pkg}' by publisher"
+    "'${_publisher}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _price_revision="$( \
+    evm-contract-call \
+      "${_data_call_opts[@]}" \
+      "${_ur_address}" \
+      "price" \
+      "${_pkg}" \
+      "${_publisher}" \
+      "${_revision}")"
+}
+
+_revision_validate() {
+  local \
+    _revision="${1}" \
+    _revision_latest="${2}" \
+    _msg=()
+  if (( "${_revision}" < "${_revision_latest}" )); then
+    _msg=(
+      "getting revision '${_revision}',"
+      "while latest is '${_revision_latest}'."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+  elif (( "${_revision}" > "${_revision_latest}" )); then
+    _msg=(
+      "trying to get revision '${_revision}',"
+      "while latest is '${_revision_latest}'."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+}
+
+_price_validate() {
+  local \
+    _price="${1}" \
+    _price_revision="${2}" \
+    _msg=()
+  if (( "${_price}" < "${_price_revision}" )); then
+    _msg=(
+      "trying to buy recipe for '${_price}',"
+      "wei but its set price"
+      "is '${_price_revision}' wei."
+      "Raising price to '${_price_revision}' wei." 
+    )
+    _msg_warning \
+      "${_msg[*]}"
+    _price="${_price_revision}"
+  elif (( "${_price}" > "${_price_revision}" )); then
+    _msg=(
+      "trying to buy recipe for for '${_price}'"
+      "wei, while its set price"
+      "is '${_price_revision}' wei."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+  fi
+}
+
+_recipe_purchase() {
+  local \
+    _target_network="${1}" \
+    _ur_address="${2}" \
+    _abi="${3}" \
+    _bytecode="${4}" \
+    _compiler_output="${5}" \
+    _work_dir="${6}" \
+    _pkg="${9}" \
+    _publisher="${10}" \
+    _revision="${11}" \
+    _recipient="${12}" \
+    _price="${13}" \
+    _measure_unit="${14}" \
+    _auto_confirm="${15}" \
+    _msg=() \
+    _data_call_opts=() \
+    _purchase_call_opts=() \
+    _revision_latest \
+    _price_revision \
+    _purchase \
+    _purchased
+  _recipe_purchase_call_opts_setup
+  _msg=(
+    "purchasing revision '${_revision}'"
+    "of package '${_pkg}'"
+    "from publisher '${_publisher}'"
+    "for '${_price}' units of currency."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _revision_latest_get \
+    "${_ur_address}" \
+    "${_publisher}" \
+    "${_pkg}"
+  if [[ "${_revision}" == "latest" || \
+        "${_revision}" == "" ]]; then
+    _revision="${_revision_latest}"
+  fi
+  _revision_validate \
+    "${_revision}" \
+    "${_revision_latest}"
+  _purchased="$( \
+    evm-contract-call \
+      "${_data_call_opts[@]}" \
+      "${_ur_address}" \
+      "purchased" \
+      "${_pkg}" \
+      "${_publisher}" \
+      "${_revision}" \
+      "${_recipient}")"
+  if [[ "${_purchased}" == "true" ]]; then
+    _msg=(
+      "user '${_recipient}' has already"
+      "purchased revision '${_revision}'"
+      "of package '${_pkg}'."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      0
+    return
+  elif [[ "${_purchased}" == "false" ]]; then
+    _purchase_call_opts_setup
+    if [[ "${_measure_unit}" == "ether" ]]; then
+      _price="$( \
+        _ether_to_wei \
+          "${_price}")"
+    fi
+    _revision_price_get \
+      "${_ur_address}" \
+      "${_publisher}" \
+      "${_pkg}" \
+      "${_revision}"
+    _price_validate \
+      "${_price}" \
+      "${_price_revision}"
+    _purchase_call_opts+=(
+      -V
+        "${_price}"
+      -m
+        "wei"
+    )
+    if [[ "${_auto_confirm}" == "y" ]]; then
+      _purchase="y"
+    elif [[ "${_auto_confirm}" == "n" ]]; then
+      echo \
+        "purchase revision '${_revision}'" \
+        "of package '${_pkg}' by" \
+        "publisher '${_publisher}'" \
+        "at price '${_price}' wei? [y/N]"
+      read \
+        _purchase
+    fi
+    if [[ "${_purchase}" == "y" ]]; then
+      evm-contract-call \
+        "${_purchase_call_opts[@]}" \
+        "${_ur_address}" \
+        "purchaseRecipe" \
+        "${_pkg}" \
+        "${_publisher}" \
+        "${_revision}" \
+        "${_recipient}" 
+    else
+      echo \
+        "transaction not confirmed, exit."
+    fi
+  fi
+}
+
+_ur_purchase() {
+  local \
+    _ur_address="${1}" \
+    _ur_version="${2}" \
+    _deployments_dir="${3}" \
+    _wallet_name="${4}" \
+    _wallet_path="${5}" \
+    _wallet_password="${6}" \
+    _wallet_seed="${7}" \
+    _target_network="${8}" \
+    _api_key_path="${9}" \
+    _cache_dir="${10}" \
+    _target_recipient="${11}" \
+    _target_package="${12}" \
+    _target_publisher="${13}" \
+    _target_revision="${14}" \
+    _target_price="${15}" \
+    _measure_unit="${16}" \
+    _auto_confirm="${17}" \
+    _command_args=() \
+    _cmd \
+    _args=() \
+    _msg=() \
+    _wallet_address \
+    _ur_abi \
+    _ur_bytecode \
+    _ur_compiler_output
+  shift \
+    17
+  _command_args+=(
+    "$@"
+  )
+  _wallet_address="$( \
+    evm-wallet \
+     get \
+       "${_wallet_name}" \
+       "address")"
+  _ur_abi="$( \
+    _contract_abi_get \
+      "${_deployments_dir}" \
+      "${_target_network}" \
+      "UserRepository" \
+      "${_ur_version}")"
+  _ur_bytecode="$( \
+    _contract_bytecode_get \
+      "${_deployments_dir}" \
+      "${_target_network}" \
+      "UserRepository" \
+      "${_ur_version}")"
+  _ur_compiler_output="$( \
+    _contract_compiler_output_get \
+      "${_deployments_dir}" \
+      "${_target_network}" \
+      "UserRepository" \
+      "${_ur_version}")"
+  if [[ "${_target_recipient}" == "" ]]; then
+    _msg=(
+      "No target address specified,"
+      "purchasing recipe for own"
+      "address '${_wallet_address}'."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+    _target_recipient="${_wallet_address}"
+  fi
+  if [[ "${_target_recipient}" != \
+        "${_wallet_address}" ]]; then
+    _msg=(
+      "Purchasing recipe for owner"
+      "of address '${_target_recipient}',"
+      "not for self."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+  fi
+  _recipe_purchase \
+      "${_target_network}" \
+      "${_ur_address}" \
+      "${_ur_abi}" \
+      "${_ur_bytecode}" \
+      "${_ur_compiler_output}" \
+      "${_cache_dir}" \
+      "${_target_package}" \
+      "${_target_publisher}" \
+      "${_target_revision}" \
+      "${_target_recipient}" \
+      "${_target_price}" \
+      "${_measure_unit}" \
+      "${_auto_confirm}"
+}
+
+_target_publisher_auto_detect() {
+  local \
+    _publisher \
+    _wallet_address \
+    _msg=()
+  _wallet_address="$( \
+    _get \
+      "wallet" \
+      "address")"
+  _publisher="$( \
+    _get \
+      "target" \
+      "publisher")"
+  if [[ "${_publisher}" == "" ]]; then
+    # TODO: retrieve available publishers
+    #       for a given package.
+    _msg=(
+      "target publisher not specified"
+      "purchasing own package recipe"
+      "if published."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+    _publisher="${_wallet_address}"
+  fi
+  _set_override \
+    "target" \
+    "publisher" \
+    "${_publisher}"
+}
+
+_target_recipient_auto_detect() {
+  local \
+    _recipient \
+    _wallet_address \
+    _msg=()
+  _wallet_address="$( \
+    _get \
+      "wallet" \
+      "address")"
+  _recipient="$( \
+    _get \
+      "target" \
+      "recipient")"
+  if [[ "${_recipient}" == "" ]]; then
+    _msg=(
+      "target recipient not specified"
+      "purchasing package for self."
+    )
+    _msg_info \
+      "${_msg[*]}"
+    _recipient="${_wallet_address}"
+  fi
+  _set_override \
+    "target" \
+    "recipient" \
+    "${_recipient}"
+}
+
+_ether_to_wei() {
+  local \
+    _ether="${1}" \
+    _unit
+  _scale=1000000000000000000
+  echo \
+    "$((_ether * _scale))"
+}
+
+_target_price_auto_detect() {
+  local \
+    _measure_unit \
+    _price
+  _measure_unit="$( \
+    _get \
+      "measure" \
+      "unit")"
+  if [[ "${_measure_unit}" == "ether" ]]; then
+    _price="1"
+  elif [[ "${_measure_unit}" == "wei" ]]; then
+    _price="$( \
+      _ether_to_wei \
+        1)"
+  fi
+  _set_override \
+    "target" \
+    "price" \
+    "${_price}"
+}
+
+_set_overrides() {
+  if [[ -v override_quiet ]]; then
+    quiet="${override_quiet}"
+  elif [[ -z "${quiet}" ]]; then
+    quiet="y"
+  fi
+  if [[ -v override_color ]]; then
+    color="${override_color}"
+  elif [[ -z "${color}" ]]; then
+    color="n"
+  fi
+  _set_override \
+    "purchase" \
+    "date" \
+    "$(_get_date_human)"
+  _set_override \
+    "wallet" \
+    "name" \
+    "default"
+  _set_override \
+    "user" \
+    "level" \
+    "n"
+  _deployments_dir_auto_detect \
+    "ur" \
+    "$(_get \
+         "user" \
+         "level")"
+  _network_auto_detect \
+    "UserRepository" \
+    "$(_get \
+         "deployments" \
+         "dir")" \
+    "$(_get \
+         "user" \
+         "level")"
+  _api_key_auto_detect \
+    "$(_get \
+         "target" \
+         "network")"
+  _set_override \
+    "wallet" \
+    "path" \
+    "$(_wallet_path_get \
+         "evm-wallet" \
+         "$(_get \
+              "wallet" \
+              "name")")"
+  _secret_auto_detect \
+    "seed" \
+    "seed" \
+    "evm-wallet" \
+    "$(_get \
+         "wallet" \
+         "name")"
+  _secret_auto_detect \
+    "password" \
+    "plain" \
+    "evm-wallet" \
+    "$(_get \
+         "wallet" \
+         "name")"
+  _set_override \
+    "wallet" \
+    "address" \
+    "$(evm-wallet \
+         get \
+           "$(_get \
+                "wallet" \
+                "name")" \
+           "address")"
+  _set_override \
+    "cache" \
+    "dir" \
+    "$(_cache_dir_auto_detect)"
+  _contract_version_auto_detect \
+    "$(_get \
+         "deployments" \
+         "dir")" \
+    "UserRepository" \
+    "ur" \
+    "$(_get \
+         "target" \
+         "network")"
+  _contract_address_auto_detect \
+    "ur" \
+    "UserRepository" \
+    "ur" \
+    "$(_get \
+         "target" \
+         "network")" \
+    "$(_get \
+         "ur" \
+         "version")" \
+    "$(_get \
+         "user" \
+         "level")" \
+    "$(_get \
+         "deployments" \
+         "dir")"
+  _set_override \
+    "auto" \
+    "confirm" \
+    "n"
+  _target_publisher_auto_detect
+  _target_recipient_auto_detect
+  _set_override \
+    "target" \
+    "revision" \
+    "latest"
+  _set_override \
+    "measure" \
+    "unit" \
+    "ether"
+  _target_price_auto_detect
+}
+
+# Show help usage, with an exit status.
+# $1: exit status number.
+_usage() {
+  local \
+    _ur \
+    _ur_deployment \
+    _networks \
+    _usage_text
+  _ur="UserRepository"
+  _ur_deployment="$( \
+    _get \
+      "deployments" \
+      "dir")/${_ur}"
+  _networks="$( \
+    evm-contract-deployment-networks \
+      -A \
+      "${_ur_deployment}")"
+  IFS='' \
+    read \
+      -r \
+      -d '' \
+      _usage_text << \
+        ENDUSAGETEXT || true
+Purchase Ur packages.
+
+Usage:
+  $(_get "app" "name")
+    [options]
+    <package>
+    <publisher>
+    <revision>
+
+  networks:
+$(_display_networks \
+     "${_networks[*]}")
+
+  options:
+     -r <recipient>         Address of the user for which the package
+                            recipe is being purchased.
+                            Default: $(_get "target" "recipient")
+     -P <price>             Manually specify an amount to purchase
+                            the recipe for.
+                            Default: $(_get "target" "price")
+     -m <measure_unit>      Unit of measure for the network
+                            purchasing currency.
+                            It can be 'ether' or 'wei'.
+                            Default: $(_get "measure" "unit")
+     -y                     If enabled do not ask for confirmation
+                            before purchase.
+                            Default: $(_get "auto" "confirm")
+     -A <ur_address>        Address of the 'User Repository'
+                            contract on the
+                            network.
+                            Default: $(_get "ur" "address")
+     -V <ur_version>        Version of the target 'User Repository'
+                            contract.
+                            Default: $(_get "ur" "version")
+     -u                     Whether to retrieve publishers' contract
+                            address from user directory or custom
+                            deployment.
+                            Default: $(_get "user" "level")
+     -d <deployments_dir>   Contracts deployments directory.
+                            Default: $(_get "deployments" "dir")
+     -N <wallet_name>       Wallet name.
+                            Default: $(_get "wallet" "name")
+     -w <wallet_path>       Wallet path.
+                            Default: $(_get "wallet" "path")
+     -p <wallet_password>   Wallet password.
+                            Default: $(_get "wallet" "password")
+     -s <wallet_seed>       Wallet seed path.
+                            Default: $(_get "wallet" "seed")
+     -n <network>           EVM network name (${_networks[*]}).
+                            Default: $(_get "target" "network")
+     -k <api_key>           Etherscan-like service key.
+                            Default: $(_get "api" "key")
+     -C <cache_dir>         Work directory.
+                            Default: $(_get "cache" "dir")
+
+     -h                     This message.
+     -c                     Enable color output
+     -v                     Enable verbose output
+ENDUSAGETEXT
+  _printf \
+    '%s\n' \
+    "${_usage_text}"
+  exit \
+    "${1}"
+}
+
+_display_flags() {
+  local \
+    _flag \
+    _flags=(
+      "${1}"
+    )
+  for _flag \
+    in "${_flags[@]}"; do
+  _msg_info \
+    "                             ${_flag}"
+  done
+}
+
+# Shows configuration options.
+_show_config() {
+  _msg_info "${app_name} configuration"
+  _msg_info "                Call date:   $(_get "call" "date")"
+  _msg_info "  User Repository address:   $(_get "ur" "address")"
+  _msg_info "  User Repository version:   $(_get "ur" "version")"
+  _msg_info "               User level:   $(_get "user" "level")"
+  _msg_info "    Deployments directory:   $(_get "deployments" "dir")"
+  _msg_info "           Wallet address:   $(_get "wallet" "address")"
+  _msg_info "              Wallet name:   $(_get "wallet" "name")"
+  _msg_info "              Wallet path:   $(_get "wallet" "path")"
+  _msg_info "          Wallet password:   $(_get "wallet" "password")"
+  _msg_info "              Wallet seed:   $(_get "wallet" "seed")"
+  _msg_info "           Target network:   $(_get "target" "network")"
+  _msg_info "                  API key:   $(_get "api" "key")"
+  _msg_info "           Target package:   $(_get "target" "package")"
+  _msg_info "          Target revision:   $(_get "target" "revision")"
+  _msg_info "         Target recipient:   $(_get "target" "recipient")"
+  _msg_info "             Target price:   $(_get "target" "price")"
+  _msg_info "             Measure unit:   $(_get "measure" "unit")"
+  _msg_info "             Auto confirm:   $(_get "auto" "confirm")"
+  _msg_info "          Cache directory:   $(_get "cache" "dir")"
+}
+
+_globals
+_global_variables
+_requirements
+# shellcheck disable=SC2034
+while \
+  getopts \
+    'r:P:m:yA:V:ud:N:w:p:s:n:k:C:H:G:cvh?' \
+    arg; do
+  case \
+    "${arg}" in
+    r) override_target_recipient="${OPTARG}" ;;
+    P) override_target_price="${OPTARG}" ;;
+    m) override_measure_unit="${OPTARG}" ;;
+    y) override_auto_confirm="y" ;;
+    A) override_ur_address="${OPTARG}" ;;
+    V) override_ur_version="${OPTARG}" ;;
+    u) override_user_level="y" ;;
+    d) override_deployments_dir="${OPTARG}" ;;
+    N) override_wallet_name="${OPTARG}" ;;
+    w) override_wallet_path="${OPTARG}" ;;
+    p) override_wallet_password="${OPTARG}" ;;
+    s) override_wallet_seed="${OPTARG}" ;;
+    n) override_target_network="${OPTARG}" ;;
+    k) override_api_key="${OPTARG}" ;;
+    C) override_cache_dir="${OPTARG}" ;;
+    c) override_color="y" ;;
+    v) override_quiet="n" ;;
+    h|?) _set_overrides && \
+         _usage \
+           0 ;;
+    *)
+    _msg_error \
+      "Invalid argument '${arg}'" \
+      0
+    _usage \
+      1
+    ;;
+  esac
+done
+shift \
+  $(( \
+    OPTIND - 1 \
+  ))
+if (( $# < 1 )); then
+  _msg_error \
+    "no package given" \
+    0
+  _set_overrides
+  _usage \
+    1
+fi
+if (( 0 < $# )); then
+  _set \
+    "target" \
+    "package" \
+    "${1}"
+fi
+if (( 1 < $# )); then
+  _set \
+    "target" \
+    "publisher" \
+    "${2}"
+fi
+if (( 2 < $# )); then
+  _set \
+    "target" \
+    "revision" \
+    "${3}"
+fi
+shift \
+  3 || \
+  true
+command_args+=(
+  "$@"
+)
+_set_overrides
+_show_config
+app_opts=(
+  "$(_get \
+       "ur" \
+       "address")"
+  "$(_get \
+       "ur" \
+       "version")"
+  "$(_get \
+       "deployments" \
+       "dir")"
+  "$(_get \
+       "wallet" \
+       "name")"
+  "$(_get \
+       "wallet" \
+       "path")"
+  "$(_get \
+       "wallet" \
+       "password")"
+  "$(_get \
+       "wallet" \
+       "seed")"
+  "$(_get \
+       "target" \
+       "network")"
+  "$(_get \
+       "api" \
+       "key")"
+  "$(_get \
+       "cache" \
+       "dir")"
+  "$(_get \
+       "target" \
+       "recipient")"
+  "$(_get \
+       "target" \
+       "package")"
+  "$(_get \
+       "target" \
+       "publisher")"
+  "$(_get \
+       "target" \
+       "revision")"
+  "$(_get \
+       "target" \
+       "price")"
+  "$(_get \
+       "measure" \
+       "unit")"
+  "$(_get \
+       "auto" \
+       "confirm")"
+)
+_ur_purchase \
+  "${app_opts[@]}"
+
+# vim:set sw=2 sts=-1 et:
