@@ -326,7 +326,7 @@ _recipe_purchase() {
     _purchase_call_opts+=(
       -V
         "${_price}"
-      -m
+      -u
         "wei"
     )
     if [[ "${_auto_confirm}" == "y" ]]; then
