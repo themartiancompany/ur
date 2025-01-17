@@ -275,7 +275,7 @@ _recipe_purchase() {
     "purchasing revision '${_revision}'"
     "of package '${_pkg}'"
     "from publisher '${_publisher}'"
-    "for '${_price}' units of currency."
+    "for '${_price}' ${_measure_unit}."
   )
   _msg_info \
     "${_msg[*]}"
