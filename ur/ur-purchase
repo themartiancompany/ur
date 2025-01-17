@@ -332,12 +332,15 @@ _recipe_purchase() {
     if [[ "${_auto_confirm}" == "y" ]]; then
       _purchase="y"
     elif [[ "${_auto_confirm}" == "n" ]]; then
-      echo \
+      _msg=(
         "purchase revision '${_revision}'" \
         "of package '${_pkg}' by" \
         "publisher '${_publisher}'" \
-        "at price '${_price}' wei? [y/N]"
+        "at price '${_price}' wei? [y/N] "
+      )
       read \
+        -p \
+          "${_msg[*]}" \
         _purchase
     fi
     if [[ "${_purchase}" == "y" ]]; then
