@@ -29,11 +29,13 @@ _global_variables() {
   target_network=""
   api_key=""
   cache_dir=""
-  gnupg_home=""
-  gnupg_private=""
   target_publisher=""
   target_package=""
   target_revision=""
+  target_recipient=""
+  target_price=""
+  auto_confirm=""
+  measure_unit=""
   command_args=()
   color=""
   quiet=""
@@ -69,10 +71,8 @@ _cache_dir_auto_detect() {
     "${_dir}"
 }
 
-_evm_call_opts_setup() {
-  local \
-    _msg=()
-  _evm_contract_call_opts+=(
+_contract_call_opts_setup() {
+  _contract_call_opts+=(
     -n
       "${_target_network}"
     -N
@@ -88,31 +88,24 @@ _evm_call_opts_setup() {
   )
 }
 
-_list_call_opts_setup() {
-  _evm_call_opts_setup
-  _list_call_opts+=(
-    "${_evm_contract_call_opts[@]}"
+_recipe_purchase_call_opts_setup() {
+  local \
+    _contract_call_opts=()
+  _contract_call_opts_setup
+  if [[ "${quiet}" == "n" ]]; then
+    _purchase_call_opts+=(
+      -v
+    )
+  fi
+  _data_call_opts+=(
+    "${_contract_call_opts[@]}"
     -t
       "static"
   )
-  _info_call_opts+=(
-    "${_evm_contract_call_opts[@]}"
-    -t
-      "static"
-  )
-}
-
-_publish_call_opts_setup() {
-  _evm_call_opts_setup
-  _publish_call_opts+=(
-    "${_evm_contract_call_opts[@]}"
+  _purchase_call_opts+=(
+    "${_contract_call_opts[@]}"
     -t
       "dynamic"
-  )
-  _check_call_opts+=(
-    "${_evm_contract_call_opts[@]}"
-    -t
-      "static"
   )
 }
 
@@ -132,417 +125,6 @@ _work_dir_setup() {
     "${_tmp_dir}"
 }
 
-_publishers_new_get() {
-  local \
-    _publisher \
-    _bound_lower \
-    _bound_upper \
-    _publishers_remote_total \
-    _publishers_local_total \
-    _publishers_new \
-    _msg=()
-  _publishers_remote_total="$(( \
-    "$(evm-contract-call \
-        "${_list_call_opts[@]}" \
-        "${_up_address}" \
-        "publisherNo")" - 1))"
-  _msg=(
-    "a total of '${_publishers_remote_total}'"
-    "are listed on the repository."
-  )
-  _msg_info \
-    "${_msg[*]}"
-  _publishers_local_total="$( \
-    wc \
-      -l \
-      "${_publishers_db}" | \
-      awk \
-        '{print $1}')" 
-  _msg=(
-    "locally are listed '${_publishers_local_total}'"
-    "publishers."
-  )
-  _msg_info \
-    "${_msg[*]}"
-  _publishers_new="$(( \
-   _publishers_remote_total - \
-   _publishers_local_total))"
-  if (( 0 < "${_publishers_new}" )); then
-    _msg=(
-      "getting info for new"
-      "'${_publishers_new}' publishers"
-    )
-    _msg_info \
-      "${_msg[*]}"
-    _bound_lower="$(( \
-      _publishers_local_total \
-      + 1))"
-    _bound_upper="$(( \
-      _publishers_remote_total))"
-    for _publisher \
-      in $(seq "${_bound_lower}" \
-               "${_bound_upper}"); do
-      _msg=(
-        "retrieving publisher '${_publisher}'"
-        "out of '${_bound_upper}'"
-      )
-      _msg_info \
-        "${_msg[*]}"
-      printf \
-        '%s\n' \
-        "$(evm-contract-call \
-             "${_list_call_opts[@]}" \
-             "${_up_address}" \
-             "publisher" \
-             "${_publisher}")" >> \
-        "${_publishers_db}"
-    done
-  fi
-}
-
-_publishers_info_get() {
-  local \
-    _publisher \
-    _publishers=() \
-    _evm_openpgp_key_receive_opts=()
-  if [[ "${quiet}" == "n" ]]; then
-    _evm_openpgp_key_receive_opts+=(
-      -v
-    )
-  fi
-  _evm_openpgp_key_receive_opts+=(
-    -H
-      "${_gnupg_home}"
-  )
-  _publishers+=(
-    $(cat \
-        "${_publishers_db}")
-  )
-  for _publisher in "${_publishers[@]}"; do
-    _msg=(
-      "retrieving information for"
-      "publisher '${_publisher}'"
-    )
-    _msg_info \
-      "${_msg[*]}"
-    evm-openpgp-key-receive \
-      "${_evm_openpgp_key_receive_opts[@]}" \
-      "${_publisher}"
-  done
-}
-
-_publishers_update() {
-  local \
-    _target_network="${1}" \
-    _up_address="${2}" \
-    _abi="${3}" \
-    _bytecode="${4}" \
-    _compiler_output="${5}" \
-    _work_dir="${6}" \
-    _gnupg_home="${7}" \
-    _msg=() \
-    _publishers_db \
-    _tmp_dir \
-    _evm_contract_call_opts=() \
-    _list_call_opts=() \
-    _info_call_opts=()
-  _list_call_opts_setup
-  _msg=(
-    "updating publishers"
-  )
-  _msg_info \
-    "${_msg[*]}"
-  _work_dir_setup
-  _publishers_db="${_work_dir}/publishers.db"
-  if [[ ! -e "${_publishers_db}" ]]; then
-    touch \
-      "${_publishers_db}"
-  fi
-  _publishers_new_get
-  _publishers_info_get
-}
-
-_publishers_list() {
-  local \
-    _gnupg_home="${1}" \
-    _gpg_opts=() \
-    _msg=()
-  _msg=(
-    "listing publishers"
-  )
-  _msg_info \
-    "${_msg[*]}"
-  _gpg_opts+=(
-    --homedir
-      "${_gnupg_home}"
-    --list-keys
-  )
-  GNUPG_HOME="${_gnupg_home}" \
-  gpg \
-    "${_gpg_opts[@]}"
-}
-
-_keys_private_check() {
-  local \
-    _user_name="${1}" \
-    _gpg_opts=() \
-    _subkey_encryption \
-    _msg=()
-  if [[ "${_user_name}" == "" ]]; then
-    _user_name="*"
-  fi
-  _keys_private="n"
-  _gpg_opts=(
-    --homedir
-      "${_gnupg_private}"
-    --list-secret-keys
-    --with-colons
-  )
-  _subkey_encryption="$( \
-    gpg \
-      "${_gpg_opts[@]}" \
-      "${_user_name}@${_target_address}" | \
-      grep \
-        "^ssb" | 
-        head \
-          -n \
-            1 | \
-          awk \
-            -F \
-              ":" \
-              '{print $12}' || \
-        true)"
-  if [[ "${_subkey_encryption}" == "e" ]]; then
-    _msg=(
-      "found encryption-capable private subkeys"
-      "for address '${_target_address}' in"
-      "GNUPG home '${_gnupg_private}'."
-    )
-    _keys_private="y"
-  elif [[ "${_subkey_encryption}" == "" ]]; then
-    _msg=(
-      "there are no encryption-capable"
-      "private keys for address"
-      "'${_target_address}' in GNUPG home"
-      "'${_gnupg_private}'."
-    )
-    _msg_info \
-      "${_msg[*]}"
-  fi
-}
-
-_key_private_new() {
-  local \
-    _user_name="${1}" \
-    _full_name="${2}" \
-    _comment \
-    _evm_gpg_opts=()
-  _comment="Ur"
-  if [[ "${_user_name}" == "" ]]; then
-    _msg=(
-      "No username specified for"
-      "private key creation."
-      "Re-run the program with option"
-      "-U <user_name>."
-    )
-    _msg_error \
-      "${_msg[*]}" \
-      1
-  fi
-  if [[ "${_full_name}" == "" ]]; then
-    _msg=(
-      "No full name specified for"
-      "private key creation."
-      "Re-run the program with option"
-      "-U <user_name>."
-    )
-    _msg_error \
-      "${_msg[*]}" \
-      1
-  fi
-  if [[ "${quiet}" == "n" ]]; then
-    _evm_gpg_opts+=(
-      -v
-    )
-  fi
-  _evm_gpg_opts+=(
-    -C
-      "${_comment}"
-    -H
-      "${_gnupg_private}"
-  )
-  evm-gpg \
-    "${_evm_gpg_opts[@]}" \
-    new \
-      "${_user_name}" \
-      "${_full_name}"
-}
-
-_keys_public_check() {
-  local \
-    _gnupg_home="${1}" \
-    _user_name="${2}" \
-    _key_fingerprint="${3}" \
-    _gpg_opts=() \
-    _available \
-    _email \
-    _msg=() \
-    _target
-  _key_published="n"
-  if [[ "${_email}" == "" && \
-        "${_key_fingerprint}" == "" ]]; then
-    _user_name="*"
-    _msg=(
-      "no username or fingerprint"
-      "selected, if any"
-      "key has already been published"
-      "no new one will."
-      "If you want to publish a new"
-      "key for an existing username"
-      "use 'evm-openpgp-key-publish'"
-      "directly."
-    )
-    _msg_warning \
-      "${_msg[*]}"
-  fi
-  _email="${_user_name}@${_target_address}"
-  _target="${_email}"
-  if [[ "${_key_fingerprint}" != "" ]]; then
-    _target="${_key_fingerprint}"
-  fi
-  _gpg_opts+=(
-    --homedir
-      "${_gnupg_home}"
-    --list-keys
-    --with-colons
-  )
-  _available="$( \
-    gpg \
-      "${_gpg_opts[@]}" \
-      "${_target}" | \
-      grep \
-        "^pub" || \
-      true)"
-  if [[ "${_available}" != "" ]]; then
-    _msg=(
-      "Key for id '${_target}'"
-      "already published."
-      "If you want to upload a new"
-      "one use 'evm-openpgp-key-publish'."
-    )
-    _msg_info \
-      "${_msg[*]}"
-    _key_published="y"
-  fi
-}
-
-_key_publish_check() {
-  local \
-    _target_address="${1}" \
-    _user_name="${2}" \
-    _key_fingerprint="${3}" \
-    _full_name="${4}" \
-    _gnupg_home="${5}" \
-    _gnupg_private="${6}" \
-    _keys_private
-  if [[ "${_key_publish}" == "y" ]]; then
-    _keys_public_check \
-      "${_user_name}@${_target_address}" \
-      "${_key_fingerprint}"
-    if [[ "${_key_published}" == "n" ]]; then
-      _keys_private_check \
-        "${_user_name}"
-      if [[ "${_keys_private}" == "n" ]]; then
-        _key_private_new \
-          "${_user_name}" \
-          "${_full_name}"
-      fi
-    fi
-  fi
-}
-
-_key_public_publish() {
-  local \
-    _evm_openpgp_key_publish_opts=() \
-    _gpg_opts=() \
-    _email \
-    _target_key
-  if [[ "${quiet}" == "n" ]]; then
-    _evm_openpgp_key_publish_opts+=(
-      -v
-    )
-  fi
-  _gpg_opts+=(
-    --homedir
-      "${_gnupg_private}"
-    --export
-    --armor
-  )
-  _evm_openpgp_key_publish_opts+=(
-    -N
-      "${_wallet_name}"
-    -w
-      "${_wallet_path}"
-    -s
-      "${_wallet_seed}"
-    -n
-      "${_target_network}"
-    -k
-      "${_api_key}"
-    -H
-      "${_gnupg_private}"
-  )
-  if [[ "${_key_fingerprint}" != "" ]]; then
-    _evm_openpgp_key_publish_opts+=(
-      -t
-        "fingerprint"
-    )
-    _target_key="${_key_fingerprint}"
-  else
-    _evm_openpgp_key_publish_opts+=(
-      -t
-        "file"
-    )
-    _email="${_user_name}@${_target_address}"
-    _target_key="${_work_dir}/${_email}.asc"
-    gpg \
-      "${_gpg_opts[@]}" > \
-      "${_target_key}"
-  fi
-  evm-openpgp-key-publish \
-    "${_evm_openpgp_key_publish_opts[@]}" \
-    "${_target_key}"
-}
-
-_publisher_list() {
-  local \
-    _check_call_opts=() \
-    _evm_contract_call_opts=() \
-    _publish_call_opts=() \
-    _publisher_id
-  _publish_call_opts_setup
-  _publisher_id="$( \
-    evm-contract-call \
-      "${_check_call_opts[@]}" \
-      "${_up_address}" \
-      "readPublisherNo" \
-      "${_target_address}")"
-  if [[ "${_publisher_id}" != "0" ]]; then
-    _msg=(
-      "Address '${_target_address}'"
-      "already registered as a publisher."
-    )
-    _msg_warning \
-      "${_msg[*]}"
-  elif [[ "${_publisher_id}" != "0" ]]; then
-    evm-contract-call \
-      "${_check_call_opts[@]}" \
-      "${_up_address}" \
-      "listPackager" \
-      "${_target_address}"
-  fi
-}
-
 _revision_latest_get() {
   local \
     _ur_address="${1}" \
@@ -559,7 +141,7 @@ _revision_latest_get() {
     "${_msg[*]}"
   _revno="$( \
     evm-contract-call \
-      "${_validate_call_opts[@]}" \
+      "${_data_call_opts[@]}" \
       "${_ur_address}" \
       "revNo" \
       "${_pkg}" \
@@ -607,9 +189,9 @@ _revision_price_get() {
   )
   _msg_info \
     "${_msg[*]}"
-  _revision_price="$( \
+  _price_revision="$( \
     evm-contract-call \
-      "${_validate_call_opts[@]}" \
+      "${_data_call_opts[@]}" \
       "${_ur_address}" \
       "price" \
       "${_pkg}" \
@@ -617,26 +199,80 @@ _revision_price_get() {
       "${_revision}")"
 }
 
+_revision_validate() {
+  local \
+    _revision="${1}" \
+    _revision_latest="${2}" \
+    _msg=()
+  if (( "${_revision}" < "${_revision_latest}" )); then
+    _msg=(
+      "getting revision '${_revision}',"
+      "while latest is '${_revision_latest}'."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+  elif (( "${_revision}" > "${_revision_latest}" )); then
+    _msg=(
+      "trying to get revision '${_revision}',"
+      "while latest is '${_revision_latest}'."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+}
+
+_price_validate() {
+  local \
+    _price="${1}" \
+    _price_revision="${2}" \
+    _msg=()
+  if (( "${_price}" < "${_price_revision}" )); then
+    _msg=(
+      "trying to buy recipe for '${_price}',"
+      "wei but its set price"
+      "is '${_price_revision}' wei."
+      "Raising price to '${_price_revision}' wei." 
+    )
+    _msg_warning \
+      "${_msg[*]}"
+    _price="${_price_revision}"
+  elif (( "${_price}" > "${_price_revision}" )); then
+    _msg=(
+      "trying to buy recipe for for '${_price}'"
+      "wei, while its set price"
+      "is '${_price_revision}' wei."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+  fi
+}
+
 _recipe_purchase() {
   local \
     _target_network="${1}" \
     _ur_address="${2}" \
-    _ur_abi="${3}" \
-    _ur_bytecode="${4}" \
-    _ur_compiler_output="${5}" \
+    _abi="${3}" \
+    _bytecode="${4}" \
+    _compiler_output="${5}" \
     _work_dir="${6}" \
-    _gnupg_home="${7}" \
-    _gnupg_private="${8}" \
     _pkg="${9}" \
     _publisher="${10}" \
     _revision="${11}" \
     _recipient="${12}" \
     _price="${13}" \
+    _measure_unit="${14}" \
+    _auto_confirm="${15}" \
     _msg=() \
+    _data_call_opts=() \
+    _purchase_call_opts=() \
     _revision_latest \
-    _revision_price
+    _price_revision \
+    _purchase \
+    _purchased
+  _recipe_purchase_call_opts_setup
   _msg=(
-    "Purchasing revision '${_revision}'"
+    "purchasing revision '${_revision}'"
     "of package '${_pkg}'"
     "from publisher '${_publisher}'"
     "for '${_price}' units of currency."
@@ -654,14 +290,71 @@ _recipe_purchase() {
   _revision_validate \
     "${_revision}" \
     "${_revision_latest}"
-  _revision_price_get \
-    "${_ur_address}" \
-    "${_publisher}" \
-    "${_pkg}" \
-    "${_revision}"
-  _price_validate \
-    "${_price}" \
-    "${_revision_price}"
+  _purchased="$( \
+    evm-contract-call \
+      "${_data_call_opts[@]}" \
+      "${_ur_address}" \
+      "purchased" \
+      "${_pkg}" \
+      "${_publisher}" \
+      "${_revision}" \
+      "${_recipient}")"
+  if [[ "${_purchased}" == "true" ]]; then
+    _msg=(
+      "user '${_recipient}' has already"
+      "purchased revision '${_revision}'"
+      "of package '${_pkg}'."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      0
+    return
+  elif [[ "${_purchased}" == "false" ]]; then
+    _purchase_call_opts_setup
+    if [[ "${_measure_unit}" == "ether" ]]; then
+      _price="$( \
+        _ether_to_wei \
+          "${_price}")"
+    fi
+    _revision_price_get \
+      "${_ur_address}" \
+      "${_publisher}" \
+      "${_pkg}" \
+      "${_revision}"
+    _price_validate \
+      "${_price}" \
+      "${_price_revision}"
+    _purchase_call_opts+=(
+      -V
+        "${_price}"
+      -m
+        "wei"
+    )
+    if [[ "${_auto_confirm}" == "y" ]]; then
+      _purchase="y"
+    elif [[ "${_auto_confirm}" == "n" ]]; then
+      echo \
+        "purchase revision '${_revision}'" \
+        "of package '${_pkg}' by" \
+        "publisher '${_publisher}'" \
+        "at price '${_price}' wei? [y/N]"
+      read \
+        _purchase
+    fi
+    if [[ "${_purchase}" == "y" ]]; then
+      evm-contract-call \
+        "${_purchase_call_opts[@]}" \
+        "${_ur_address}" \
+        "purchaseRecipe" \
+        "${_pkg}" \
+        "${_publisher}" \
+        "${_revision}" \
+        "${_recipient}" 
+    else
+      echo \
+        "transaction not confirmed, exit."
+    fi
+  fi
 }
 
 _ur_purchase() {
@@ -676,13 +369,13 @@ _ur_purchase() {
     _target_network="${8}" \
     _api_key_path="${9}" \
     _cache_dir="${10}" \
-    _gnupg_home="${11}" \
-    _gnupg_private="${12}" \
-    _target_recipient="${13}" \
-    _target_package="${14}" \
-    _target_publisher="${15}" \
-    _target_revision="${16}" \
-    _target_price="${17}" \
+    _target_recipient="${11}" \
+    _target_package="${12}" \
+    _target_publisher="${13}" \
+    _target_revision="${14}" \
+    _target_price="${15}" \
+    _measure_unit="${16}" \
+    _auto_confirm="${17}" \
     _command_args=() \
     _cmd \
     _args=() \
@@ -746,18 +439,18 @@ _ur_purchase() {
       "${_ur_bytecode}" \
       "${_ur_compiler_output}" \
       "${_cache_dir}" \
-      "${_gnupg_home}" \
-      "${_gnupg_private}" \
       "${_target_package}" \
       "${_target_publisher}" \
       "${_target_revision}" \
       "${_target_recipient}" \
-      "${_target_price}"
+      "${_target_price}" \
+      "${_measure_unit}" \
+      "${_auto_confirm}"
 }
 
 _target_publisher_auto_detect() {
   local \
-    _publisher
+    _publisher \
     _wallet_address \
     _msg=()
   _wallet_address="$( \
@@ -788,7 +481,7 @@ _target_publisher_auto_detect() {
 
 _target_recipient_auto_detect() {
   local \
-    _recipient
+    _recipient \
     _wallet_address \
     _msg=()
   _wallet_address="$( \
@@ -812,6 +505,36 @@ _target_recipient_auto_detect() {
     "target" \
     "recipient" \
     "${_recipient}"
+}
+
+_ether_to_wei() {
+  local \
+    _ether="${1}" \
+    _unit
+  _scale=1000000000000000000
+  echo \
+    "$((_ether * _scale))"
+}
+
+_target_price_auto_detect() {
+  local \
+    _measure_unit \
+    _price
+  _measure_unit="$( \
+    _get \
+      "measure" \
+      "unit")"
+  if [[ "${_measure_unit}" == "ether" ]]; then
+    _price="1"
+  elif [[ "${_measure_unit}" == "wei" ]]; then
+    _price="$( \
+      _ether_to_wei \
+        1)"
+  fi
+  _set_override \
+    "target" \
+    "price" \
+    "${_price}"
 }
 
 _set_overrides() {
@@ -889,16 +612,6 @@ _set_overrides() {
     "cache" \
     "dir" \
     "$(_cache_dir_auto_detect)"
-  _set_override \
-    "gnupg" \
-    "home" \
-    "$(_get \
-         "cache" \
-         "dir")/gnupg"
-  _set_override \
-    "gnupg" \
-    "private" \
-    "$(_conf_dir_auto_detect)/gnupg"
   _contract_version_auto_detect \
     "$(_get \
          "deployments" \
@@ -924,6 +637,10 @@ _set_overrides() {
     "$(_get \
          "deployments" \
          "dir")"
+  _set_override \
+    "auto" \
+    "confirm" \
+    "n"
   _target_publisher_auto_detect
   _target_recipient_auto_detect
   _set_override \
@@ -931,9 +648,10 @@ _set_overrides() {
     "revision" \
     "latest"
   _set_override \
-    "target" \
-    "price" \
-    "1"
+    "measure" \
+    "unit" \
+    "ether"
+  _target_price_auto_detect
 }
 
 # Show help usage, with an exit status.
@@ -979,6 +697,13 @@ $(_display_networks \
      -P <price>             Manually specify an amount to purchase
                             the recipe for.
                             Default: $(_get "target" "price")
+     -m <measure_unit>      Unit of measure for the network
+                            purchasing currency.
+                            It can be 'ether' or 'wei'.
+                            Default: $(_get "measure" "unit")
+     -y                     If enabled do not ask for confirmation
+                            before purchase.
+                            Default: $(_get "auto" "confirm")
      -A <ur_address>        Address of the 'User Repository'
                             contract on the
                             network.
@@ -1006,10 +731,6 @@ $(_display_networks \
                             Default: $(_get "api" "key")
      -C <cache_dir>         Work directory.
                             Default: $(_get "cache" "dir")
-     -H <gnupg_home>        GNUPG home directory.
-                            Default: $(_get "gnupg" "home")
-     -G <gnupg_private>     GNUPG private home directory.
-                            Default: $(_get "gnupg" "private")
 
      -h                     This message.
      -c                     Enable color output
@@ -1054,9 +775,9 @@ _show_config() {
   _msg_info "          Target revision:   $(_get "target" "revision")"
   _msg_info "         Target recipient:   $(_get "target" "recipient")"
   _msg_info "             Target price:   $(_get "target" "price")"
+  _msg_info "             Measure unit:   $(_get "measure" "unit")"
+  _msg_info "             Auto confirm:   $(_get "auto" "confirm")"
   _msg_info "          Cache directory:   $(_get "cache" "dir")"
-  _msg_info "          GNUPG directory:   $(_get "gnupg" "home")"
-  _msg_info "  GNUPG private directory:   $(_get "gnupg" "private")"
 }
 
 _globals
@@ -1065,13 +786,14 @@ _requirements
 # shellcheck disable=SC2034
 while \
   getopts \
-    'r:P:y:A:V:ud:N:w:p:s:n:k:C:H:G:cvh?' \
+    'r:P:m:yA:V:ud:N:w:p:s:n:k:C:H:G:cvh?' \
     arg; do
   case \
     "${arg}" in
     r) override_target_recipient="${OPTARG}" ;;
     P) override_target_price="${OPTARG}" ;;
-    y) override_auto_confirm="${OPTARG}" ;;
+    m) override_measure_unit="${OPTARG}" ;;
+    y) override_auto_confirm="y" ;;
     A) override_ur_address="${OPTARG}" ;;
     V) override_ur_version="${OPTARG}" ;;
     u) override_user_level="y" ;;
@@ -1083,8 +805,6 @@ while \
     n) override_target_network="${OPTARG}" ;;
     k) override_api_key="${OPTARG}" ;;
     C) override_cache_dir="${OPTARG}" ;;
-    H) override_gnupg_home="${OPTARG}" ;;
-    G) override_gnupg_private="${OPTARG}" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
     h|?) _set_overrides && \
@@ -1169,12 +889,6 @@ app_opts=(
        "cache" \
        "dir")"
   "$(_get \
-       "gnupg" \
-       "home")"
-  "$(_get \
-       "gnupg" \
-       "private")"
-  "$(_get \
        "target" \
        "recipient")"
   "$(_get \
@@ -1189,6 +903,12 @@ app_opts=(
   "$(_get \
        "target" \
        "price")"
+  "$(_get \
+       "measure" \
+       "unit")"
+  "$(_get \
+       "auto" \
+       "confirm")"
 )
 _ur_purchase \
   "${app_opts[@]}"

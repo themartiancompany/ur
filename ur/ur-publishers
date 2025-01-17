@@ -79,10 +79,8 @@ _cache_dir_auto_detect() {
     "${_dir}"
 }
 
-_evm_call_opts_setup() {
-  local \
-    _msg=()
-  _evm_contract_call_opts+=(
+_contract_call_opts_setup() {
+  _contract_call_opts+=(
     -n
       "${_target_network}"
     -N
@@ -96,37 +94,35 @@ _evm_call_opts_setup() {
     -C
       "${_compiler_output}"
   )
-  _msg=(
-    "evm-contract-call will be called"
-    "with base options '${_evm_contract_call_opts[*]}'"
-  )
-  _msg_info \
-    "${_msg[*]}"
 }
 
-_list_call_opts_setup() {
-  _evm_call_opts_setup
+_publishers_update_call_opts_setup() {
+  local \
+    _contract_call_opts=()
+  _contract_call_opts_setup
   _list_call_opts+=(
-    "${_evm_contract_call_opts[@]}"
+    "${_contract_call_opts[@]}"
     -t
       "static"
   )
   _info_call_opts+=(
-    "${_evm_contract_call_opts[@]}"
+    "${_contract_call_opts[@]}"
     -t
       "static"
   )
 }
 
-_publish_call_opts_setup() {
-  _evm_call_opts_setup
+_publisher_list_call_opts_setup() {
+  local \
+    _contract_call_opts=()
+  _contract_call_opts_setup
   _publish_call_opts+=(
-    "${_evm_contract_call_opts[@]}"
+    "${_contract_call_opts[@]}"
     -t
       "dynamic"
   )
   _check_call_opts+=(
-    "${_evm_contract_call_opts[@]}"
+    "${_contract_call_opts[@]}"
     -t
       "static"
   )
@@ -180,7 +176,8 @@ _publishers_new_get() {
       awk \
         '{print $1}')" 
   _msg=(
-    "locally are listed '${_publishers_local_total}'"
+    "locally are listed"
+    "'${_publishers_local_total}'"
     "publishers."
   )
   _msg_info \
@@ -264,10 +261,9 @@ _publishers_update() {
     _msg=() \
     _publishers_db \
     _tmp_dir \
-    _evm_contract_call_opts=() \
     _list_call_opts=() \
     _info_call_opts=()
-  _list_call_opts_setup
+  _publishers_update_call_opts_setup
   _msg=(
     "updating publishers"
   )
@@ -538,10 +534,10 @@ _key_public_publish() {
 _publisher_list() {
   local \
     _check_call_opts=() \
-    _evm_contract_call_opts=() \
     _publish_call_opts=() \
-    _publisher_id
-  _publish_call_opts_setup
+    _publisher_id \
+    _enrolling_fee
+  _publisher_list_call_opts_setup
   _publisher_id="$( \
     evm-contract-call \
       "${_check_call_opts[@]}" \
@@ -555,9 +551,29 @@ _publisher_list() {
     )
     _msg_warning \
       "${_msg[*]}"
-  elif [[ "${_publisher_id}" != "0" ]]; then
+  elif [[ "${_publisher_id}" == "0" ]]; then
+    _enrolling_fee="$( \
+      evm-contract-call \
+        "${_check_call_opts[@]}" \
+        "${_up_address}" \
+        "enrollingFee")"
+    _msg=(
+      "registering address"
+      "'${_target_address}'"
+      "as a User Repository"
+      "publisher with enrolling fee"
+      "'${_enrolling_fee}'."
+    )
+    _publish_call_opts+=(
+      -V
+        "${_enrolling_fee}"
+      -m
+        "wei"
+    )
+    _msg_info \
+      "${_msg[*]}"
     evm-contract-call \
-      "${_check_call_opts[@]}" \
+      "${_publish_call_opts[@]}" \
       "${_up_address}" \
       "listPackager" \
       "${_target_address}"
