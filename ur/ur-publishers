@@ -44,7 +44,8 @@ _global_variables() {
 
 _requirements() {
   _check_cmd \
-    'libevm-requirements'
+    'libevm-requirements' \
+    'libevm'
   libevm-requirements
   _check_cmd \
     'evm-contract-call' \
