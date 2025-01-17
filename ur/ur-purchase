@@ -310,7 +310,6 @@ _recipe_purchase() {
       0
     return
   elif [[ "${_purchased}" == "false" ]]; then
-    _purchase_call_opts_setup
     if [[ "${_measure_unit}" == "ether" ]]; then
       _price="$( \
         _ether_to_wei \
