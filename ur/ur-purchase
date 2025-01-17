@@ -465,7 +465,7 @@ _target_publisher_auto_detect() {
     # TODO: retrieve available publishers
     #       for a given package.
     _msg=(
-      "target publisher not specified"
+      "target publisher not specified,"
       "purchasing own package recipe"
       "if published."
     )
@@ -494,7 +494,7 @@ _target_recipient_auto_detect() {
       "recipient")"
   if [[ "${_recipient}" == "" ]]; then
     _msg=(
-      "target recipient not specified"
+      "target recipient not specified,"
       "purchasing package for self."
     )
     _msg_info \
@@ -677,6 +677,7 @@ _usage() {
       -d '' \
       _usage_text << \
         ENDUSAGETEXT || true
+
 Purchase Ur packages.
 
 Usage:
