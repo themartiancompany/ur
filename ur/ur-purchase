@@ -156,11 +156,11 @@ _revision_latest_get() {
       "${_msg[*]}" \
       1
   elif (( 0 < "${_revno}" )); then
-    _revision="$(( \
+    _revision_latest="$(( \
       _revno - 1))"
     _msg=(
       "latest revision for '${_pkg}'"
-      "is '${_revision}'."
+      "is '${_revision_latest}'."
     )
     _msg_info \
       "${_msg[*]}"
