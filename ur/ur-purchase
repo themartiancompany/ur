@@ -352,6 +352,8 @@ _recipe_purchase() {
         "${_publisher}" \
         "${_revision}" \
         "${_recipient}" 
+      echo \
+        "revision correctly purchased."
     else
       echo \
         "transaction not confirmed, exit."
