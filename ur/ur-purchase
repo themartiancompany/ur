@@ -760,7 +760,7 @@ _display_flags() {
 # Shows configuration options.
 _show_config() {
   _msg_info "${app_name} configuration"
-  _msg_info "                Call date:   $(_get "call" "date")"
+  _msg_info "            Purchase date:   $(_get "purchase" "date")"
   _msg_info "  User Repository address:   $(_get "ur" "address")"
   _msg_info "  User Repository version:   $(_get "ur" "version")"
   _msg_info "               User level:   $(_get "user" "level")"
