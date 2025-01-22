@@ -59,6 +59,11 @@ contract PackagePublishers {
         address => mapping(
           string => mapping(
             uint256 => address)))) packagePublisher;
+    mapping(
+      address => mapping(
+        address => mapping(
+          string => mapping(
+            address => uint256)))) packagePublisherListed;
 
     constructor() {}
 
@@ -67,7 +72,7 @@ contract PackagePublishers {
      * @param _publishers User Repository Publishers contract.
      * @param _publisher Publisher address.
      */
-    function checkListed(
+    function checkPublisher(
       address _publishers,
       address _publisher)
       public
@@ -78,7 +83,7 @@ contract PackagePublishers {
       require(
         _userRepositoryPublishers.listed(
           _publisher) > 0, 
-          "Publisher not listed on the user repository."
+        "Publisher not listed on the user repository."
       );
     }
 
@@ -89,14 +94,14 @@ contract PackagePublishers {
      * @param _publisher Publisher address.
      * @param _package Package(s group) to check.
      */
-    function checkPublished(
+    function checkRecipe(
       address _repository,
       address _publishers,
       address _publisher,
       string memory _package)
       public
       view {
-      checkListed(
+      checkPublisher(
         _publishers,
         _publisher);
       UserRepositoryInterface _userRepository =
@@ -106,7 +111,32 @@ contract PackagePublishers {
         _userRepository.revNo(
           _package,
           _publisher) > 0, 
-          "Publisher has not published a recipe for the package."
+        "Publisher has not published a recipe for the package."
+      );
+    }
+
+    /**
+     * @dev Checks a publisher has not already been listed
+     *      as a package recipe provider.
+     * @param _repository User Repository contract.
+     * @param _publishers User Repository Publishers contract.
+     * @param _package Package(s group).
+     * @param _publisher Publisher address to check.
+     */
+    function checkUnlisted(
+      address _repository,
+      address _publishers,
+      string memory _package,
+      address _publisher)
+      public
+      view {
+      require(
+        packagePublisherListed[
+          _repository][
+            _publishers][
+              _package][
+                _publisher] == 0,
+        "Publisher has already listed as a package recipe provider."
       );
     }
 
@@ -115,19 +145,32 @@ contract PackagePublishers {
      * @param _repository User Repository contract.
      * @param _publishers User Repository Publishers contract.
      * @param _package Package(s group).
-     * @param _publisher Publisher address.
+     * @param _publisher Publisher address to list.
      */
-    function listPublisher(
+    function listPackagePublisher(
       address _repository,
       address _publishers,
       string memory _package,
       address _publisher)
       public {
-      checkPublished(
+      checkRecipe(
         _repository,
         _publishers,
         _publisher,
         _package);
+      checkUnlisted(
+        _repository,
+        _publishers,
+        _package,
+        _publisher)
+      packagePublisherNo[
+        _repository][
+          _publishers][
+            _package] =
+        packagePublisherNo[
+          _repository][
+            _publishers][
+              _package] + 1;
       packagePublisher[
         _repository][
           _publishers][
@@ -137,12 +180,15 @@ contract PackagePublishers {
                   _publishers][
                     _package]] =
         _publisher;
-      packagePublisherNo[
+      packagePublisherListed[
         _repository][
           _publishers][
-            _package] =
+            _package][
+              _publisher] =
         packagePublisherNo[
-          _repository][_publishers][_package] + 1;  
+          _repository][
+            _publishers][
+              _package];
     }
 
 }
