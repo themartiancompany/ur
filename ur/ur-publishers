@@ -275,6 +275,9 @@ _publishers_update() {
   if [[ ! -e "${_publishers_db}" ]]; then
     touch \
       "${_publishers_db}"
+    chmod \
+      600 \
+      "${_publishers_db}"
   fi
   _publishers_new_get
   _publishers_info_get
