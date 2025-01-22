@@ -143,7 +143,7 @@ contract PackagePublishers {
                 _publisher] == 0,
         "Publisher has already listed as a package recipe provider."
       );
-      returns true;
+      return true;
     }
 
     /**
