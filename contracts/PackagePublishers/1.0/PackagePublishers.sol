@@ -76,7 +76,8 @@ contract PackagePublishers {
       address _publishers,
       address _publisher)
       public
-      view {
+      view
+      returns(bool) {
       UserRepositoryPublishersInterface _userRepositoryPublishers =
         UserRepositoryPublishersInterface(
           _publishers);
@@ -85,6 +86,7 @@ contract PackagePublishers {
           _publisher) > 0, 
         "Publisher not listed on the user repository."
       );
+      return true;
     }
 
     /**
@@ -100,7 +102,8 @@ contract PackagePublishers {
       address _publisher,
       string memory _package)
       public
-      view {
+      view
+      returns(bool) {
       checkPublisher(
         _publishers,
         _publisher);
@@ -113,6 +116,7 @@ contract PackagePublishers {
           _publisher) > 0, 
         "Publisher has not published a recipe for the package."
       );
+      return true;
     }
 
     /**
@@ -129,7 +133,8 @@ contract PackagePublishers {
       string memory _package,
       address _publisher)
       public
-      view {
+      view
+      returns(bool) {
       require(
         packagePublisherListed[
           _repository][
@@ -138,6 +143,7 @@ contract PackagePublishers {
                 _publisher] == 0,
         "Publisher has already listed as a package recipe provider."
       );
+      returns true;
     }
 
     /**
@@ -153,16 +159,22 @@ contract PackagePublishers {
       string memory _package,
       address _publisher)
       public {
-      checkRecipe(
-        _repository,
-        _publishers,
-        _publisher,
-        _package);
-      checkUnlisted(
-        _repository,
-        _publishers,
-        _package,
-        _publisher);
+      require(
+        checkRecipe(
+          _repository,
+          _publishers,
+          _publisher,
+          _package) == true,
+        "Publisher has not published a recipe for the package."
+      );
+      require(
+        checkUnlisted(
+          _repository,
+          _publishers,
+          _package,
+          _publisher) == true,
+        "Publisher has already listed as a package recipe provider."
+      );
       packagePublisherNo[
         _repository][
           _publishers][
