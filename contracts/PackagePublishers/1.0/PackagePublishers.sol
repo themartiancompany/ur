@@ -94,7 +94,7 @@ contract PackagePublishers {
       address _publisher,
       string memory _package)
       internal
-      pure {
+      view {
       checkListed(
         _publishers,
 	_publisher);
