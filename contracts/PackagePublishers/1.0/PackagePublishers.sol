@@ -162,7 +162,7 @@ contract PackagePublishers {
         _repository,
         _publishers,
         _package,
-        _publisher)
+        _publisher);
       packagePublisherNo[
         _repository][
           _publishers][
