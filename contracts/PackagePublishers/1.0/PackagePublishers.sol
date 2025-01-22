@@ -53,12 +53,12 @@ contract PackagePublishers {
     mapping(
       address => mapping(
         address => mapping(
-	  string => uint256))) public packagePublisherNo; 
+          string => uint256))) public packagePublisherNo; 
     mapping(
       address => mapping(
         address => mapping(
-	  string => mapping(
-	    uint256 => address)))) packagePublisher;
+          string => mapping(
+            uint256 => address)))) packagePublisher;
 
     constructor() {}
 
@@ -72,11 +72,12 @@ contract PackagePublishers {
       address _publisher)
       public
       view {
-      UserRepositoryPublishersInterface _userRepositoryPublishers = UserRepositoryPublishersInterface(
-        _publishers);
+      UserRepositoryPublishersInterface _userRepositoryPublishers =
+        UserRepositoryPublishersInterface(
+          _publishers);
       require(
-	_userRepositoryPublishers.listed(
-	  _publisher) > 0, 
+        _userRepositoryPublishers.listed(
+          _publisher) > 0, 
           "Publisher not listed on the user repository."
       );
     }
@@ -97,12 +98,13 @@ contract PackagePublishers {
       view {
       checkListed(
         _publishers,
-	_publisher);
-      UserRepositoryInterface _userRepository = UserRepositoryInterface(
-        _repository);
+        _publisher);
+      UserRepositoryInterface _userRepository =
+        UserRepositoryInterface(
+          _repository);
       require(
-	_userRepository.revNo(
-	  _package,
+        _userRepository.revNo(
+          _package,
           _publisher) > 0, 
           "Publisher has not published a recipe for the package."
       );
@@ -122,12 +124,25 @@ contract PackagePublishers {
       address _publisher)
       public {
       checkPublished(
-	_repository,
-	_publishers,
-	_publisher,
-	_package);
-      packagePublisher[_repository][_publishers][_package][packagePublisherNo[_repository][_publishers][_package]] = _publisher;
-      packagePublisherNo[_repository][_publishers][_package] = packagePublisherNo[_repository][_publishers][_package] + 1;  
+        _repository,
+        _publishers,
+        _publisher,
+        _package);
+      packagePublisher[
+        _repository][
+          _publishers][
+            _package][
+              packagePublisherNo[
+                _repository][
+                  _publishers][
+                    _package]] =
+        _publisher;
+      packagePublisherNo[
+        _repository][
+          _publishers][
+            _package] =
+        packagePublisherNo[
+          _repository][_publishers][_package] + 1;  
     }
 
 }
