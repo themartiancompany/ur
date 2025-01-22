@@ -94,7 +94,7 @@ contract PackagePublishers {
       address _publishers,
       address _publisher,
       string memory _package)
-      internal
+      public
       view {
       checkListed(
         _publishers,
