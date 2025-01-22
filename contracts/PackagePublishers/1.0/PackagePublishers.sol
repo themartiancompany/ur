@@ -26,6 +26,7 @@ interface UserRepositoryPublishersInterface {
   function listed(
     address _publisher)
     external
+    view
     returns(uint256);
 }
 
@@ -34,6 +35,7 @@ interface UserRepositoryInterface {
     string memory _package,
     address _publisher)
     external
+    view
     returns(uint256);
 }
 
