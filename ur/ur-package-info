@@ -1,0 +1,1131 @@
+#!/usr/bin/env bash
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+_bin="$( \
+  dirname \
+    "$( \
+      command \
+        -v \
+	  "env")")"
+_lib="${_bin}/../lib"
+source \
+  "${_lib}/libcrash-bash/crash-bash"
+source \
+  "${_lib}/libevm/libevm"
+
+# shellcheck disable=SC2034
+_global_variables() {
+  call_date=""
+  ur_address=""
+  ur_version=""
+  up_address=""
+  up_version=""
+  deployments_dir=""
+  user_level=""
+  wallet_name=""
+  wallet_path=""
+  wallet_password=""
+  wallet_seed=""
+  wallet_address=""
+  target_network=""
+  api_key=""
+  cache_dir=""
+  gnupg_home=""
+  gnupg_private=""
+  source_publisher=""
+  target_package=""
+  command_args=()
+  color=""
+  quiet=""
+}
+
+_requirements() {
+  _check_cmd \
+    'libevm-requirements' \
+    'libevm'
+  libevm-requirements
+  _check_cmd \
+    'evm-contract-call' \
+    'evm-contracts-tools'
+  _check_cmd \
+    'evm-contract-deployment-networks' \
+    'evm-contracts-tools'
+  _check_cmd \
+    'evm-wallet'
+  _check_cmd \
+    'evm-openpgp-key-publish' \
+    'evm-openpgp-keyserver'
+  _check_cmd \
+    'evm-openpgp-key-receive' \
+    'evm-openpgp-keyserver'
+}
+
+_conf_dir_auto_detect() {
+  local \
+    _dir
+  _dir="${HOME}/.config/ur/packages"
+  echo \
+    "${_dir}"
+}
+
+_cache_dir_auto_detect() {
+  local \
+    _dir
+  _dir="${HOME}/.cache/ur/packages"
+  echo \
+    "${_dir}"
+}
+
+_contract_call_opts_setup() {
+  _contract_call_opts+=(
+    -n
+      "${_target_network}"
+    -N
+      "${_wallet_name}"
+    -k
+      "${_api_key_path}"
+    -A
+      "${_abi}"
+    -B
+      "${_bytecode}"
+    -C
+      "${_compiler_output}"
+  )
+}
+
+_publishers_update_call_opts_setup() {
+  local \
+    _contract_call_opts=()
+  _contract_call_opts_setup
+  _list_call_opts+=(
+    "${_contract_call_opts[@]}"
+    -t
+      "static"
+  )
+  _info_call_opts+=(
+    "${_contract_call_opts[@]}"
+    -t
+      "static"
+  )
+}
+
+_publisher_list_call_opts_setup() {
+  local \
+    _contract_call_opts=()
+  _contract_call_opts_setup
+  _publish_call_opts+=(
+    "${_contract_call_opts[@]}"
+    -t
+      "dynamic"
+  )
+  _check_call_opts+=(
+    "${_contract_call_opts[@]}"
+    -t
+      "static"
+  )
+}
+
+
+
+_work_dir_setup() {
+  local \
+    _msg=()
+  _tmp_dir="${_cache_dir}"
+  _msg=(
+    "setting up work directory"
+    "'${_tmp_dir}'"
+  )
+  _msg_info \
+    "${_msg[*]}"
+  mkdir \
+    -p \
+    "${_tmp_dir}/gnupg"
+  chmod \
+    -R \
+    700 \
+    "${_tmp_dir}"
+}
+
+_publishers_new_get() {
+  local \
+    _publisher \
+    _bound_lower \
+    _bound_upper \
+    _publishers_remote_total \
+    _publishers_local_total \
+    _publishers_new \
+    _msg=()
+  _publishers_remote_total="$(( \
+    "$(evm-contract-call \
+        "${_list_call_opts[@]}" \
+        "${_up_address}" \
+        "publisherNo")" - 1))"
+  _msg=(
+    "a total of '${_publishers_remote_total}'"
+    "are listed on the repository."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _publishers_local_total="$( \
+    wc \
+      -l \
+      "${_publishers_db}" | \
+      awk \
+        '{print $1}')" 
+  _msg=(
+    "locally are listed"
+    "'${_publishers_local_total}'"
+    "publishers."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _publishers_new="$(( \
+   _publishers_remote_total - \
+   _publishers_local_total))"
+  if (( 0 < "${_publishers_new}" )); then
+    _msg=(
+      "getting info for new"
+      "'${_publishers_new}' publishers"
+    )
+    _msg_info \
+      "${_msg[*]}"
+    _bound_lower="$(( \
+      _publishers_local_total \
+      + 1))"
+    _bound_upper="$(( \
+      _publishers_remote_total))"
+    for _publisher \
+      in $(seq "${_bound_lower}" \
+               "${_bound_upper}"); do
+      _msg=(
+        "retrieving publisher '${_publisher}'"
+        "out of '${_bound_upper}'"
+      )
+      _msg_info \
+        "${_msg[*]}"
+      printf \
+        '%s\n' \
+        "$(evm-contract-call \
+             "${_list_call_opts[@]}" \
+             "${_up_address}" \
+             "publisher" \
+             "${_publisher}")" >> \
+        "${_publishers_db}"
+    done
+  fi
+}
+
+_publishers_info_get() {
+  local \
+    _publisher \
+    _publishers=() \
+    _evm_openpgp_key_receive_opts=()
+  if [[ "${quiet}" == "n" ]]; then
+    _evm_openpgp_key_receive_opts+=(
+      -v
+    )
+  fi
+  _evm_openpgp_key_receive_opts+=(
+    -H
+      "${_gnupg_home}"
+  )
+  _publishers+=(
+    $(cat \
+        "${_publishers_db}")
+  )
+  for _publisher in "${_publishers[@]}"; do
+    _msg=(
+      "retrieving information for"
+      "publisher '${_publisher}'"
+    )
+    _msg_info \
+      "${_msg[*]}"
+    evm-openpgp-key-receive \
+      "${_evm_openpgp_key_receive_opts[@]}" \
+      "${_publisher}"
+  done
+}
+
+_publishers_update() {
+  local \
+    _target_network="${1}" \
+    _up_address="${2}" \
+    _abi="${3}" \
+    _bytecode="${4}" \
+    _compiler_output="${5}" \
+    _work_dir="${6}" \
+    _gnupg_home="${7}" \
+    _msg=() \
+    _publishers_db \
+    _tmp_dir \
+    _list_call_opts=() \
+    _info_call_opts=()
+  _publishers_update_call_opts_setup
+  _msg=(
+    "updating publishers"
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _work_dir_setup
+  _publishers_db="${_work_dir}/publishers.db"
+  if [[ ! -e "${_publishers_db}" ]]; then
+    touch \
+      "${_publishers_db}"
+    chmod \
+      600 \
+      "${_publishers_db}"
+  fi
+  _publishers_new_get
+  _publishers_info_get
+}
+
+_publishers_list() {
+  local \
+    _gnupg_home="${1}" \
+    _gpg_opts=() \
+    _msg=()
+  _msg=(
+    "listing publishers"
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _gpg_opts+=(
+    --homedir
+      "${_gnupg_home}"
+    --list-keys
+  )
+  GNUPG_HOME="${_gnupg_home}" \
+  gpg \
+    "${_gpg_opts[@]}"
+}
+
+_keys_private_check() {
+  local \
+    _user_name="${1}" \
+    _gpg_opts=() \
+    _subkey_encryption \
+    _msg=()
+  if [[ "${_user_name}" == "" ]]; then
+    _user_name="*"
+  fi
+  _keys_private="n"
+  _gpg_opts=(
+    --homedir
+      "${_gnupg_private}"
+    --list-secret-keys
+    --with-colons
+  )
+  _subkey_encryption="$( \
+    gpg \
+      "${_gpg_opts[@]}" \
+      "${_user_name}@${_target_address}" | \
+      grep \
+        "^ssb" | 
+        head \
+          -n \
+            1 | \
+          awk \
+            -F \
+              ":" \
+              '{print $12}' || \
+        true)"
+  if [[ "${_subkey_encryption}" == "e" ]]; then
+    _msg=(
+      "found encryption-capable private subkeys"
+      "for address '${_target_address}' in"
+      "GNUPG home '${_gnupg_private}'."
+    )
+    _keys_private="y"
+  elif [[ "${_subkey_encryption}" == "" ]]; then
+    _msg=(
+      "there are no encryption-capable"
+      "private keys for address"
+      "'${_target_address}' in GNUPG home"
+      "'${_gnupg_private}'."
+    )
+    _msg_info \
+      "${_msg[*]}"
+  fi
+}
+
+_key_private_new() {
+  local \
+    _user_name="${1}" \
+    _full_name="${2}" \
+    _comment \
+    _evm_gpg_opts=()
+  _comment="Ur"
+  if [[ "${_user_name}" == "" ]]; then
+    _msg=(
+      "No username specified for"
+      "private key creation."
+      "Re-run the program with option"
+      "-U <user_name>."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+  if [[ "${_full_name}" == "" ]]; then
+    _msg=(
+      "No full name specified for"
+      "private key creation."
+      "Re-run the program with option"
+      "-U <user_name>."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+  if [[ "${quiet}" == "n" ]]; then
+    _evm_gpg_opts+=(
+      -v
+    )
+  fi
+  _evm_gpg_opts+=(
+    -C
+      "${_comment}"
+    -H
+      "${_gnupg_private}"
+  )
+  evm-gpg \
+    "${_evm_gpg_opts[@]}" \
+    new \
+      "${_user_name}" \
+      "${_full_name}"
+}
+
+_keys_public_check() {
+  local \
+    _gnupg_home="${1}" \
+    _user_name="${2}" \
+    _key_fingerprint="${3}" \
+    _gpg_opts=() \
+    _available \
+    _email \
+    _msg=() \
+    _target
+  _key_published="n"
+  if [[ "${_email}" == "" && \
+        "${_key_fingerprint}" == "" ]]; then
+    _user_name="*"
+    _msg=(
+      "no username or fingerprint"
+      "selected, if any"
+      "key has already been published"
+      "no new one will."
+      "If you want to publish a new"
+      "key for an existing username"
+      "use 'evm-openpgp-key-publish'"
+      "directly."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+  fi
+  _email="${_user_name}@${_target_address}"
+  _target="${_email}"
+  if [[ "${_key_fingerprint}" != "" ]]; then
+    _target="${_key_fingerprint}"
+  fi
+  _gpg_opts+=(
+    --homedir
+      "${_gnupg_home}"
+    --list-keys
+    --with-colons
+  )
+  _available="$( \
+    gpg \
+      "${_gpg_opts[@]}" \
+      "${_target}" | \
+      grep \
+        "^pub" || \
+      true)"
+  if [[ "${_available}" != "" ]]; then
+    _msg=(
+      "Key for id '${_target}'"
+      "already published."
+      "If you want to upload a new"
+      "one use 'evm-openpgp-key-publish'."
+    )
+    _msg_info \
+      "${_msg[*]}"
+    _key_published="y"
+  fi
+}
+
+_key_publish_check() {
+  local \
+    _target_address="${1}" \
+    _user_name="${2}" \
+    _key_fingerprint="${3}" \
+    _full_name="${4}" \
+    _gnupg_home="${5}" \
+    _gnupg_private="${6}" \
+    _keys_private
+  if [[ "${_key_publish}" == "y" ]]; then
+    _keys_public_check \
+      "${_user_name}@${_target_address}" \
+      "${_key_fingerprint}"
+    if [[ "${_key_published}" == "n" ]]; then
+      _keys_private_check \
+        "${_user_name}"
+      if [[ "${_keys_private}" == "n" ]]; then
+        _key_private_new \
+          "${_user_name}" \
+          "${_full_name}"
+      fi
+    fi
+  fi
+}
+
+_key_public_publish() {
+  local \
+    _evm_openpgp_key_publish_opts=() \
+    _gpg_opts=() \
+    _email \
+    _target_key
+  if [[ "${quiet}" == "n" ]]; then
+    _evm_openpgp_key_publish_opts+=(
+      -v
+    )
+  fi
+  _gpg_opts+=(
+    --homedir
+      "${_gnupg_private}"
+    --export
+    --armor
+  )
+  _evm_openpgp_key_publish_opts+=(
+    -N
+      "${_wallet_name}"
+    -w
+      "${_wallet_path}"
+    -s
+      "${_wallet_seed}"
+    -n
+      "${_target_network}"
+    -k
+      "${_api_key}"
+    -H
+      "${_gnupg_private}"
+  )
+  if [[ "${_key_fingerprint}" != "" ]]; then
+    _evm_openpgp_key_publish_opts+=(
+      -t
+        "fingerprint"
+    )
+    _target_key="${_key_fingerprint}"
+  else
+    _evm_openpgp_key_publish_opts+=(
+      -t
+        "file"
+    )
+    _email="${_user_name}@${_target_address}"
+    _target_key="${_work_dir}/${_email}.asc"
+    gpg \
+      "${_gpg_opts[@]}" > \
+      "${_target_key}"
+  fi
+  evm-openpgp-key-publish \
+    "${_evm_openpgp_key_publish_opts[@]}" \
+    "${_target_key}"
+}
+
+_publisher_list() {
+  local \
+    _check_call_opts=() \
+    _publish_call_opts=() \
+    _publisher_id \
+    _enrolling_fee
+  _publisher_list_call_opts_setup
+  _publisher_id="$( \
+    evm-contract-call \
+      "${_check_call_opts[@]}" \
+      "${_up_address}" \
+      "readPublisherNo" \
+      "${_target_address}")"
+  if [[ "${_publisher_id}" != "0" ]]; then
+    _msg=(
+      "Address '${_target_address}'"
+      "already registered as a publisher."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+  elif [[ "${_publisher_id}" == "0" ]]; then
+    _enrolling_fee="$( \
+      evm-contract-call \
+        "${_check_call_opts[@]}" \
+        "${_up_address}" \
+        "enrollingFee")"
+    _msg=(
+      "registering address"
+      "'${_target_address}'"
+      "as a User Repository"
+      "publisher with enrolling fee"
+      "'${_enrolling_fee}'."
+    )
+    _publish_call_opts+=(
+      -V
+        "${_enrolling_fee}"
+      -m
+        "wei"
+    )
+    _msg_info \
+      "${_msg[*]}"
+    evm-contract-call \
+      "${_publish_call_opts[@]}" \
+      "${_up_address}" \
+      "listPackager" \
+      "${_target_address}"
+  fi
+}
+
+_publisher_register() {
+  local \
+    _target_network="${1}" \
+    _up_address="${2}" \
+    _up_abi="${3}" \
+    _up_bytecode="${4}" \
+    _up_compiler_output="${5}" \
+    _work_dir="${6}" \
+    _gnupg_home="${7}" \
+    _gnupg_private="${8}" \
+    _key_publish="${9}" \
+    _user_name="${10}" \
+    _key_fingerprint="${11}" \
+    _full_name="${12}" \
+    _target_address="${13}" \
+    _key_published \
+    _key_fingerprint \
+    _msg=()
+  _msg=(
+    "Registering publisher"
+    "'${_publisher}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _publishers_update \
+    "${_target_network}" \
+    "${_up_address}" \
+    "${_up_abi}" \
+    "${_up_bytecode}" \
+    "${_up_compiler_output}" \
+    "${_work_dir}" \
+    "${_gnupg_home}"
+  _key_publish_check \
+    "${_target_address}" \
+    "${_user_name}" \
+    "${_key_fingerprint}" \
+    "${_full_name}" \
+    "${_gnupg_home}" \
+    "${_gnupg_private}"
+  _publisher_list
+  if [[ "${_key_published}" == "n" ]]; then
+    _key_public_publish
+  fi
+}
+
+_ur_package_info() {
+  local \
+    _ur_address="${1}" \
+    _ur_version="${2}" \
+    _up_address="${3}" \
+    _up_version="${4}" \
+    _deployments_dir="${5}" \
+    _wallet_name="${6}" \
+    _wallet_path="${7}" \
+    _wallet_password="${8}" \
+    _wallet_seed="${9}" \
+    _target_network="${10}" \
+    _api_key_path="${11}" \
+    _cache_dir="${12}" \
+    _gnupg_home="${13}" \
+    _gnupg_private="${14}" \
+    _source_publisher="${15}" \
+    _target_package="${16}" \
+    _command_args=() \
+    _cmd \
+    _args=() \
+    _msg=() \
+    _wallet_address \
+    _target_address \
+    _up_abi \
+    _up_bytecode \
+    _up_compiler_output
+  shift \
+    16
+  _command_args+=(
+    "$@"
+  )
+  _wallet_address="$( \
+    evm-wallet \
+     get \
+       "${_wallet_name}" \
+       "address")"
+  _up_abi="$( \
+    _contract_abi_get \
+      "${_deployments_dir}" \
+      "${_target_network}" \
+      "UserRepositoryPublishers" \
+      "${_up_version}")"
+  _up_bytecode="$( \
+    _contract_bytecode_get \
+      "${_deployments_dir}" \
+      "${_target_network}" \
+      "UserRepositoryPublishers" \
+      "${_up_version}")"
+  _up_compiler_output="$( \
+    _contract_compiler_output_get \
+      "${_deployments_dir}" \
+      "${_target_network}" \
+      "UserRepositoryPublishers" \
+      "${_up_version}")"
+  if [[ "${_target_command}" == "update" ]]; then
+    _publishers_update \
+      "${_target_network}" \
+      "${_up_address}" \
+      "${_up_abi}" \
+      "${_up_bytecode}" \
+      "${_up_compiler_output}" \
+      "${_cache_dir}" \
+      "${_gnupg_home}"
+  elif [[ "${_target_command}" == "list" ]]; then
+    _publishers_list \
+      "${_gnupg_home}"
+  elif [[ "${_target_command}" == "register" ]]; then
+    _target_address="${_target_key}"
+    if [[ "${_target_address}" == "" ]]; then
+      _msg=(
+        "No target address specified,"
+        "setting own address '${_wallet_address}'."
+      )
+      _msg_warning \
+        "${_msg[*]}"
+      _target_address="${_wallet_address}"
+    fi
+    if [[ "${_target_address}" != \
+          "${_wallet_address}" && \
+          "${_key_publish}" == "y" ]]; then
+      _msg=(
+        "Registering third-party"
+        "publisher '${_target_address}',"
+        "disabling 'key publishing' option."
+        "To publish applications the publisher"
+        "will then have to publish his/her key"
+        "using 'evm-openpgp-key-publish' separately."
+      )
+      _msg_warning \
+        "${_msg[*]}"
+      _key_publish="n"
+    fi
+    _publisher_register \
+      "${_target_network}" \
+      "${_up_address}" \
+      "${_up_abi}" \
+      "${_up_bytecode}" \
+      "${_up_compiler_output}" \
+      "${_cache_dir}" \
+      "${_gnupg_home}" \
+      "${_gnupg_private}" \
+      "${_key_publish}" \
+      "${_user_name}" \
+      "${_fingerprint}" \
+      "${_full_name}" \
+      "${_target_address}"
+  else
+    _msg_error \
+      "unknown command '${_target_command}'"
+  fi
+}
+
+_set_overrides() {
+  local \
+    _key_publish
+  if [[ -v override_quiet ]]; then
+    quiet="${override_quiet}"
+  elif [[ -z "${quiet}" ]]; then
+    quiet="y"
+  fi
+  if [[ -v override_color ]]; then
+    color="${override_color}"
+  elif [[ -z "${color}" ]]; then
+    color="n"
+  fi
+  _set_override \
+    "call" \
+    "date" \
+    "$(_get_date_human)"
+  _set_override \
+    "wallet" \
+    "name" \
+    "default"
+  _set_override \
+    "user" \
+    "level" \
+    "n"
+  _deployments_dir_auto_detect \
+    "ur" \
+    "$(_get \
+         "user" \
+         "level")"
+  _network_auto_detect \
+    "UserRepositoryPublishers" \
+    "$(_get \
+         "deployments" \
+         "dir")" \
+    "$(_get \
+         "user" \
+         "level")"
+  _api_key_auto_detect \
+    "$(_get \
+         "target" \
+         "network")"
+  _set_override \
+    "wallet" \
+    "path" \
+    "$(_wallet_path_get \
+         "evm-wallet" \
+         "$(_get \
+              "wallet" \
+              "name")")"
+  _secret_auto_detect \
+    "seed" \
+    "seed" \
+    "evm-wallet" \
+    "$(_get \
+         "wallet" \
+         "name")"
+  _secret_auto_detect \
+    "password" \
+    "plain" \
+    "evm-wallet" \
+    "$(_get \
+         "wallet" \
+         "name")"
+  _set_override \
+    "wallet" \
+    "address" \
+    "$(evm-wallet \
+         get \
+           "$(_get \
+                "wallet" \
+                "name")" \
+           "address")"
+  _set_override \
+    "cache" \
+    "dir" \
+    "$(_cache_dir_auto_detect)"
+  _set_override \
+    "gnupg" \
+    "home" \
+    "$(_get \
+         "cache" \
+         "dir")/gnupg"
+  _set_override \
+    "gnupg" \
+    "private" \
+    "$(_conf_dir_auto_detect)/gnupg"
+  _contract_version_auto_detect \
+    "$(_get \
+         "deployments" \
+         "dir")" \
+    "UserRepositoryPublishers" \
+    "up" \
+    "$(_get \
+         "target" \
+         "network")"
+  _contract_address_auto_detect \
+    "ur" \
+    "UserRepositoryPublishers" \
+    "up" \
+    "$(_get \
+         "target" \
+         "network")" \
+    "$(_get \
+         "up" \
+         "version")" \
+    "$(_get \
+         "user" \
+         "level")" \
+    "$(_get \
+         "deployments" \
+         "dir")"
+  _set_override \
+    "target" \
+    "command" \
+    "list"
+  _key_publish="n"
+  if [[ "${target_command}" == "register" ]]; then
+    _key_publish="y"
+  fi
+  _set_override \
+    "key" \
+    "publish" \
+    "${_key_publish}"
+  _set_override \
+    "user" \
+    "name" \
+    ""
+  _set_override \
+    "full" \
+    "name" \
+    ""
+  _set_override \
+    "key" \
+    "fingerprint" \
+    ""
+}
+
+# Show help usage, with an exit status.
+# $1: exit status number.
+_usage() {
+  local \
+    _up \
+    _up_deployment \
+    _networks \
+    _usage_text
+  _up="UserRepositoryPublishers"
+  _up_deployment="$( \
+    _get \
+      "deployments" \
+      "dir")/${_up}"
+  _networks="$( \
+    evm-contract-deployment-networks \
+      -A \
+      "${_up_deployment}")"
+  IFS='' \
+    read \
+      -r \
+      -d '' \
+      _usage_text << \
+        ENDUSAGETEXT || true
+Ur Publishers management
+
+Usage:
+  $(_get "app" "name")
+    [options]
+    <command>
+    <key>
+    <value>
+
+  commands:
+    list
+    register
+      <target_address>
+    update
+
+  networks:
+$(_display_networks \
+     "${_networks[*]}")
+
+  options:
+     -A <up_address>        Address of the 'User Repository
+                            Publishers' contract on the
+                            network.
+                            Default: $(_get "up" "address")
+     -V <up_version>        Version of the target 'User Repository
+                            Publishers' contract.
+                            Default: $(_get "up" "version")
+     -u                     Whether to retrieve publishers' contract
+                            address from user directory or custom
+                            deployment.
+                            Default: $(_get "user" "level")
+     -d <deployments_dir>   Contracts deployments directory.
+                            Default: $(_get "deployments" "dir")
+     -N <wallet_name>       Wallet name.
+                            Default: $(_get "wallet" "name")
+     -w <wallet_path>       Wallet path.
+                            Default: $(_get "wallet" "path")
+     -p <wallet_password>   Wallet password.
+                            Default: $(_get "wallet" "password")
+     -s <wallet_seed>       Wallet seed path.
+                            Default: $(_get "wallet" "seed")
+     -n <network>           EVM network name (${_networks[*]}).
+                            Default: $(_get "target" "network")
+     -k <api_key>           Etherscan-like service key.
+                            Default: $(_get "api" "key")
+     -C <cache_dir>         Work directory.
+                            Default: $(_get "cache" "dir")
+     -H <gnupg_home>        GNUPG home directory.
+                            Default: $(_get "gnupg" "home")
+     -G <gnupg_private>     GNUPG private home directory.
+                            Default: $(_get "gnupg" "private")
+     -P <y/n>               Whether to publish key.
+                            Default: $(_get "key" "publish")
+     -U <user_name>         Publisher's key username.
+                            Default: $(_get "user" "name")
+     -f <key_fingerprint>   Publisher's key fingerprint.
+                            Default: $(_get "key" "fingerprint")
+     -F <full_name>         Publisher's key full name.
+                            Default: $(_get "full" "name")
+
+     -h                     This message.
+     -c                     Enable color output
+     -v                     Enable verbose output
+ENDUSAGETEXT
+  _printf \
+    '%s\n' \
+    "${_usage_text}"
+  exit \
+    "${1}"
+}
+
+_display_flags() {
+  local \
+    _flag \
+    _flags=(
+      "${1}"
+    )
+  for _flag \
+    in "${_flags[@]}"; do
+  _msg_info \
+    "                             ${_flag}"
+  done
+}
+
+# Shows configuration options.
+_show_config() {
+  _msg_info "${app_name} configuration"
+  _msg_info "                Call date:   $(_get "call" "date")"
+  _msg_info "       Publishers address:   $(_get "up" "address")"
+  _msg_info "       Publishers version:   $(_get "up" "version")"
+  _msg_info "               User level:   $(_get "user" "level")"
+  _msg_info "    Deployments directory:   $(_get "deployments" "dir")"
+  _msg_info "           Wallet address:   $(_get "wallet" "address")"
+  _msg_info "              Wallet name:   $(_get "wallet" "name")"
+  _msg_info "              Wallet path:   $(_get "wallet" "path")"
+  _msg_info "          Wallet password:   $(_get "wallet" "password")"
+  _msg_info "              Wallet seed:   $(_get "wallet" "seed")"
+  _msg_info "           Target network:   $(_get "target" "network")"
+  _msg_info "                  API key:   $(_get "api" "key")"
+  _msg_info "          Cache directory:   $(_get "cache" "dir")"
+  _msg_info "          GNUPG directory:   $(_get "gnupg" "home")"
+  _msg_info "  GNUPG private directory:   $(_get "gnupg" "private")"
+  _msg_info "              Publish key:   $(_get "key" "publish")"
+  _msg_info "             Key username:   $(_get "user" "name")"
+  _msg_info "          Key fingerprint:   $(_get "key" "fingerprint")"
+  _msg_info "            Key full name:   $(_get "full" "name")"
+  _msg_info "           Target command:   $(_get "target" "command")"
+  _msg_info "               Target key:   $(_get "target" "key")"
+  _msg_info "             Target value:   $(_get "target" "value")"
+}
+
+_globals
+_global_variables
+_requirements
+# shellcheck disable=SC2034
+while \
+  getopts \
+    'A:V:ud:N:w:p:s:n:k:C:H:G:P:U:f:F:cvh?' \
+    arg; do
+  case \
+    "${arg}" in
+    A) override_up_address="${OPTARG}" ;;
+    V) override_up_version="${OPTARG}" ;;
+    u) override_user_level="y" ;;
+    d) override_deployments_dir="${OPTARG}" ;;
+    N) override_wallet_name="${OPTARG}" ;;
+    w) override_wallet_path="${OPTARG}" ;;
+    p) override_wallet_password="${OPTARG}" ;;
+    s) override_wallet_seed="${OPTARG}" ;;
+    n) override_target_network="${OPTARG}" ;;
+    k) override_api_key="${OPTARG}" ;;
+    C) override_cache_dir="${OPTARG}" ;;
+    H) override_gnupg_home="${OPTARG}" ;;
+    G) override_gnupg_private="${OPTARG}" ;;
+    P) override_key_publish="${OPTARG}" ;;
+    U) override_user_name="${OPTARG}" ;;
+    f) override_key_fingerprint="${OPTARG}" ;;
+    F) override_full_name="${OPTARG}" ;;
+    c) override_color="y" ;;
+    v) override_quiet="n" ;;
+    h|?) _set_overrides && \
+         _usage \
+           0 ;;
+    *)
+    _msg_error \
+      "Invalid argument '${arg}'" \
+      0
+    _usage \
+      1
+    ;;
+  esac
+done
+shift \
+  $(( \
+    OPTIND - 1 \
+  ))
+if (( $# < 1 )); then
+  _msg_error \
+    "no package specified" \
+    0
+  _set_overrides
+  _usage \
+    1
+fi
+if (( 0 < $# )); then
+  _set \
+    "target" \
+    "package" \
+    "${1}"
+fi
+shift \
+  1 || \
+  true
+command_args+=(
+  "$@"
+)
+_set_overrides
+_show_config
+app_opts=(
+  "$(_get \
+       "ur" \
+       "address")"
+  "$(_get \
+       "up" \
+       "version")"
+  "$(_get \
+       "up" \
+       "address")"
+  "$(_get \
+       "up" \
+       "version")"
+  "$(_get \
+       "deployments" \
+       "dir")"
+  "$(_get \
+       "wallet" \
+       "name")"
+  "$(_get \
+       "wallet" \
+       "path")"
+  "$(_get \
+       "wallet" \
+       "password")"
+  "$(_get \
+       "wallet" \
+       "seed")"
+  "$(_get \
+       "target" \
+       "network")"
+  "$(_get \
+       "api" \
+       "key")"
+  "$(_get \
+       "cache" \
+       "dir")"
+  "$(_get \
+       "gnupg" \
+       "home")"
+  "$(_get \
+       "gnupg" \
+       "private")"
+  "$(_get \
+       "source" \
+       "publisher")"
+)
+_ur_package_info \
+  "${app_opts[@]}"
+
+# vim:set sw=2 sts=-1 et:
