@@ -58,12 +58,12 @@ contract PackagePublishers {
       address => mapping(
         address => mapping(
           string => mapping(
-            uint256 => address)))) packagePublisher;
+            uint256 => address)))) public packagePublisher;
     mapping(
       address => mapping(
         address => mapping(
           string => mapping(
-            address => uint256)))) packagePublisherListed;
+            address => uint256)))) public packagePublisherListed;
 
     constructor() {}
 

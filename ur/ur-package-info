@@ -394,7 +394,7 @@ _package_providers_get() {
       "${_package}")"
   for _publishers \
     in $(seq 1 \
-             "${_providers_total}"); do
+             "${_publishers_total}"); do
     _publishers+=( "$( \
        evm-contract-call \
         "${_providers_call_opts[@]}" \
