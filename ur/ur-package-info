@@ -57,9 +57,6 @@ _requirements() {
     'evm-contracts-tools'
   _check_cmd \
     'evm-wallet'
-  _check_cmd \
-    "ur-publishers" \
-    "ur"
 }
 
 _conf_dir_auto_detect() {
