@@ -392,9 +392,18 @@ _package_providers_get() {
       "${_ur_address}" \
       "${_up_address}" \
       "${_package}")"
-  for _publishers \
+  for _publisher \
     in $(seq 1 \
              "${_publishers_total}"); do
+     evm-contract-call \
+       -v \
+      "${_providers_call_opts[@]}" \
+      "${_pp_address}" \
+      "packagePublisher" \
+      "${_ur_address}" \
+      "${_up_address}" \
+      "${_package}" \
+      "${_publisher}"
     _publishers+=( "$( \
        evm-contract-call \
         "${_providers_call_opts[@]}" \
@@ -402,7 +411,8 @@ _package_providers_get() {
         "packagePublisher" \
         "${_ur_address}" \
         "${_up_address}" \
-        "${_package}")"
+        "${_package}" \
+        "${_publisher}")"
     )
   done
   if (( "${#_publishers[@]}" == 0 )); then
