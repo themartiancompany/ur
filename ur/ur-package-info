@@ -604,7 +604,7 @@ _set_overrides() {
   _set_override \
     "target" \
     "revision" \
-    ""
+    "latest"
 }
 
 # Show help usage, with an exit status.
@@ -713,28 +713,26 @@ _display_flags() {
 # Shows configuration options.
 _show_config() {
   _msg_info "${app_name} configuration"
-  _msg_info "                Call date:   $(_get "call" "date")"
-  _msg_info "       Publishers address:   $(_get "up" "address")"
-  _msg_info "       Publishers version:   $(_get "up" "version")"
-  _msg_info "               User level:   $(_get "user" "level")"
-  _msg_info "    Deployments directory:   $(_get "deployments" "dir")"
-  _msg_info "           Wallet address:   $(_get "wallet" "address")"
-  _msg_info "              Wallet name:   $(_get "wallet" "name")"
-  _msg_info "              Wallet path:   $(_get "wallet" "path")"
-  _msg_info "          Wallet password:   $(_get "wallet" "password")"
-  _msg_info "              Wallet seed:   $(_get "wallet" "seed")"
-  _msg_info "           Target network:   $(_get "target" "network")"
-  _msg_info "                  API key:   $(_get "api" "key")"
-  _msg_info "          Cache directory:   $(_get "cache" "dir")"
-  _msg_info "          GNUPG directory:   $(_get "gnupg" "home")"
-  _msg_info "  GNUPG private directory:   $(_get "gnupg" "private")"
-  _msg_info "              Publish key:   $(_get "key" "publish")"
-  _msg_info "             Key username:   $(_get "user" "name")"
-  _msg_info "          Key fingerprint:   $(_get "key" "fingerprint")"
-  _msg_info "            Key full name:   $(_get "full" "name")"
-  _msg_info "           Target command:   $(_get "target" "command")"
-  _msg_info "               Target key:   $(_get "target" "key")"
-  _msg_info "             Target value:   $(_get "target" "value")"
+  _msg_info "                Call date:   ${call_date}"
+  _msg_info "       Repository address:   ${ur_address}"
+  _msg_info "       Repository version:   ${ur_version}"
+  _msg_info "       Publishers address:   ${up_address}"
+  _msg_info "        Packagers address:   ${pp_address}"
+  _msg_info "               User level:   ${user_level}"
+  _msg_info "    Deployments directory:   ${deployments_dir}"
+  _msg_info "           Wallet address:   ${wallet_address}"
+  _msg_info "              Wallet name:   ${wallet_name}"
+  _msg_info "              Wallet path:   ${wallet_path}"
+  _msg_info "          Wallet password:   ${wallet_password}"
+  _msg_info "              Wallet seed:   ${wallet_seed}"
+  _msg_info "           Target network:   ${target_network}"
+  _msg_info "                  API key:   ${api_key}"
+  _msg_info "          Cache directory:   ${cache_dir}"
+  _msg_info "          GNUPG directory:   ${gnupg_home}"
+  _msg_info "  GNUPG private directory:   ${gnupg_private}"
+  _msg_info "         Source publisher:   ${source_publisher}"
+  _msg_info "           Target package:   ${target_package}"
+  _msg_info "          Target revision:   ${target_revision}"
 }
 
 _globals
