@@ -38,6 +38,7 @@ _global_variables() {
   source_publisher=""
   target_package=""
   target_revision=""
+  info_type=""
   command_args=()
   color=""
   quiet=""
@@ -98,37 +99,19 @@ _contract_call_opts_setup() {
   )
 }
 
-_providers_call_opts_setup() {
+_publishers_call_opts_setup() {
   local \
     _contract_call_opts=()
   _contract_call_opts_setup \
     "${_pp_abi}" \
     "${_pp_bytecode}" \
     "${_pp_compiler_output}"
-  _providers_call_opts+=(
+  _publishers_call_opts+=(
     "${_contract_call_opts[@]}"
     -t
       "static"
   )
 }
-
-_publisher_list_call_opts_setup() {
-  local \
-    _contract_call_opts=()
-  _contract_call_opts_setup
-  _publish_call_opts+=(
-    "${_contract_call_opts[@]}"
-    -t
-      "dynamic"
-  )
-  _check_call_opts+=(
-    "${_contract_call_opts[@]}"
-    -t
-      "static"
-  )
-}
-
-
 
 _work_dir_setup() {
   local \
@@ -149,209 +132,7 @@ _work_dir_setup() {
     "${_tmp_dir}"
 }
 
-_publishers_new_get() {
-  local \
-    _publisher \
-    _bound_lower \
-    _bound_upper \
-    _publishers_remote_total \
-    _publishers_local_total \
-    _publishers_new \
-    _msg=()
-  _publishers_remote_total="$(( \
-    "$(evm-contract-call \
-        "${_list_call_opts[@]}" \
-        "${_up_address}" \
-        "publisherNo")" - 1))"
-  _msg=(
-    "a total of '${_publishers_remote_total}'"
-    "are listed on the repository."
-  )
-  _msg_info \
-    "${_msg[*]}"
-  _publishers_local_total="$( \
-    wc \
-      -l \
-      "${_publishers_db}" | \
-      awk \
-        '{print $1}')" 
-  _msg=(
-    "locally are listed"
-    "'${_publishers_local_total}'"
-    "publishers."
-  )
-  _msg_info \
-    "${_msg[*]}"
-  _publishers_new="$(( \
-   _publishers_remote_total - \
-   _publishers_local_total))"
-  if (( 0 < "${_publishers_new}" )); then
-    _msg=(
-      "getting info for new"
-      "'${_publishers_new}' publishers"
-    )
-    _msg_info \
-      "${_msg[*]}"
-    _bound_lower="$(( \
-      _publishers_local_total \
-      + 1))"
-    _bound_upper="$(( \
-      _publishers_remote_total))"
-    for _publisher \
-      in $(seq "${_bound_lower}" \
-               "${_bound_upper}"); do
-      _msg=(
-        "retrieving publisher '${_publisher}'"
-        "out of '${_bound_upper}'"
-      )
-      _msg_info \
-        "${_msg[*]}"
-      printf \
-        '%s\n' \
-        "$(evm-contract-call \
-             "${_list_call_opts[@]}" \
-             "${_up_address}" \
-             "publisher" \
-             "${_publisher}")" >> \
-        "${_publishers_db}"
-    done
-  fi
-}
-
-_publishers_info_get() {
-  local \
-    _publisher \
-    _publishers=() \
-    _evm_openpgp_key_receive_opts=()
-  if [[ "${quiet}" == "n" ]]; then
-    _evm_openpgp_key_receive_opts+=(
-      -v
-    )
-  fi
-  _evm_openpgp_key_receive_opts+=(
-    -H
-      "${_gnupg_home}"
-  )
-  _publishers+=(
-    $(cat \
-        "${_publishers_db}")
-  )
-  for _publisher in "${_publishers[@]}"; do
-    _msg=(
-      "retrieving information for"
-      "publisher '${_publisher}'"
-    )
-    _msg_info \
-      "${_msg[*]}"
-    evm-openpgp-key-receive \
-      "${_evm_openpgp_key_receive_opts[@]}" \
-      "${_publisher}"
-  done
-}
-
-_publishers_update() {
-  local \
-    _target_network="${1}" \
-    _up_address="${2}" \
-    _abi="${3}" \
-    _bytecode="${4}" \
-    _compiler_output="${5}" \
-    _work_dir="${6}" \
-    _gnupg_home="${7}" \
-    _msg=() \
-    _publishers_db \
-    _tmp_dir \
-    _list_call_opts=() \
-    _info_call_opts=()
-  _publishers_update_call_opts_setup
-  _msg=(
-    "updating publishers"
-  )
-  _msg_info \
-    "${_msg[*]}"
-  _work_dir_setup
-  _publishers_db="${_work_dir}/publishers.db"
-  if [[ ! -e "${_publishers_db}" ]]; then
-    touch \
-      "${_publishers_db}"
-    chmod \
-      600 \
-      "${_publishers_db}"
-  fi
-  _publishers_new_get
-  _publishers_info_get
-}
-
-_publishers_list() {
-  local \
-    _gnupg_home="${1}" \
-    _gpg_opts=() \
-    _msg=()
-  _msg=(
-    "listing publishers"
-  )
-  _msg_info \
-    "${_msg[*]}"
-  _gpg_opts+=(
-    --homedir
-      "${_gnupg_home}"
-    --list-keys
-  )
-  GNUPG_HOME="${_gnupg_home}" \
-  gpg \
-    "${_gpg_opts[@]}"
-}
-
-_keys_private_check() {
-  local \
-    _user_name="${1}" \
-    _gpg_opts=() \
-    _subkey_encryption \
-    _msg=()
-  if [[ "${_user_name}" == "" ]]; then
-    _user_name="*"
-  fi
-  _keys_private="n"
-  _gpg_opts=(
-    --homedir
-      "${_gnupg_private}"
-    --list-secret-keys
-    --with-colons
-  )
-  _subkey_encryption="$( \
-    gpg \
-      "${_gpg_opts[@]}" \
-      "${_user_name}@${_target_address}" | \
-      grep \
-        "^ssb" | 
-        head \
-          -n \
-            1 | \
-          awk \
-            -F \
-              ":" \
-              '{print $12}' || \
-        true)"
-  if [[ "${_subkey_encryption}" == "e" ]]; then
-    _msg=(
-      "found encryption-capable private subkeys"
-      "for address '${_target_address}' in"
-      "GNUPG home '${_gnupg_private}'."
-    )
-    _keys_private="y"
-  elif [[ "${_subkey_encryption}" == "" ]]; then
-    _msg=(
-      "there are no encryption-capable"
-      "private keys for address"
-      "'${_target_address}' in GNUPG home"
-      "'${_gnupg_private}'."
-    )
-    _msg_info \
-      "${_msg[*]}"
-  fi
-}
-
-_package_providers_get() {
+_package_publishers_get() {
   local \
     _pp_address="${1}" \
     _pp_version="${2}" \
@@ -383,10 +164,10 @@ _package_providers_get() {
       "${_target_network}" \
       "PackagePublishers" \
       "${_pp_version}")"
-  _providers_call_opts_setup 
+  _publishers_call_opts_setup 
   _publishers_total="$( \
     evm-contract-call \
-      "${_providers_call_opts[@]}" \
+      "${_publishers_call_opts[@]}" \
       "${_pp_address}" \
       "packagePublisherNo" \
       "${_ur_address}" \
@@ -395,18 +176,9 @@ _package_providers_get() {
   for _publisher \
     in $(seq 1 \
              "${_publishers_total}"); do
-     evm-contract-call \
-       -v \
-      "${_providers_call_opts[@]}" \
-      "${_pp_address}" \
-      "packagePublisher" \
-      "${_ur_address}" \
-      "${_up_address}" \
-      "${_package}" \
-      "${_publisher}"
     _publishers+=( "$( \
        evm-contract-call \
-        "${_providers_call_opts[@]}" \
+        "${_publishers_call_opts[@]}" \
         "${_pp_address}" \
         "packagePublisher" \
         "${_ur_address}" \
@@ -431,6 +203,9 @@ _package_providers_get() {
     _msg_info \
       "${_msg[*]}"
   fi
+  printf \
+    "%s\n" \
+    "${_publishers[@]}"
 }
 
 _ur_package_info() {
@@ -454,47 +229,35 @@ _ur_package_info() {
     _source_publisher="${17}" \
     _target_package="${18}" \
     _target_revision="${19}" \
+    _info_type="${20}" \
     _ur_publishers_opts=() \
     _command_args=() \
     _cmd \
     _args=() \
-    _msg=()
+    _msg=() \
+    _publishers=()
   shift \
-    19
+    20
   _command_args+=(
     "$@"
   )
   if [[ "${_source_publisher}" == "" ]]; then
     _msg=(
       "Source publisher not selected,"
-      "showing info for all of the available"
-      "ones."
+      "showing all available."
     )
-    _msg_info \
+    _msg_warning \
       "${_msg[*]}"
-    _package_providers_get \
+    _info_type="publishers"
+  fi
+  if [[ "${_info_type}" == "publishers" ]]; then
+    _package_publishers_get \
       "${_pp_address}" \
       "${_pp_version}" \
       "${_ur_address}" \
       "${_up_address}" \
       "${_target_package}"
-    # if [[ "${quiet}" == "n" ]]; then
-    #   _ur_publishers_opts+=(
-    #     -v
-    #   )
-    # fi
-    # ur-publishers \
-    #   "${_ur_publishers_opts[@]}" \
-    #   update
   fi
-  # _publishers_info_get \
-  #   "${_target_network}" \
-  #   "${_pp_address}" \
-  #   "${_pp_abi}" \
-  #   "${_pp_bytecode}" \
-  #   "${_pp_compiler_output}" \
-  #   "${_cache_dir}" \
-  #   "${_gnupg_home}"
 }
 
 _set_overrides() {
@@ -615,6 +378,10 @@ _set_overrides() {
     "target" \
     "revision" \
     "latest"
+  _set_override \
+    "info" \
+    "type" \
+    "publishers"
 }
 
 # Show help usage, with an exit status.
@@ -684,17 +451,19 @@ $(_display_networks \
      -n <network>           EVM network name (${_networks[*]}).
                             Default: $(_get "target" "network")
      -k <api_key>           Etherscan-like service key.
-                            Default: $(_get "api" "key")
+                            Default: ${api_key}
      -C <cache_dir>         Work directory.
-                            Default: $(_get "cache" "dir")
+                            Default: ${cache_dir}
      -H <gnupg_home>        GNUPG home directory.
-                            Default: $(_get "gnupg" "home")
+                            Default: ${gnupg_home}
      -G <gnupg_private>     GNUPG private home directory.
                             Default: $(_get "gnupg" "private")
      -P <publisher>         Target package publisher.
                             Default: $(_get "source" "publisher")
      -r <revision>          Target package revision.
                             Default: $(_get "target" "revision")
+     -i <info_type>         It can be 'publishers'.
+                            Default: ${_info_type}
 
      -h                     This message.
      -c                     Enable color output
@@ -743,6 +512,7 @@ _show_config() {
   _msg_info "         Source publisher:   ${source_publisher}"
   _msg_info "           Target package:   ${target_package}"
   _msg_info "          Target revision:   ${target_revision}"
+  _msg_info "                Info type:   ${info_type}"
 }
 
 _globals
@@ -751,7 +521,7 @@ _requirements
 # shellcheck disable=SC2034
 while \
   getopts \
-    'A:V:B:C:ud:N:w:p:s:n:k:C:H:G:P:r:cvh?' \
+    'A:V:B:C:ud:N:w:p:s:n:k:C:H:G:P:r:i:cvh?' \
     arg; do
   case \
     "${arg}" in
@@ -770,6 +540,7 @@ while \
     G) override_gnupg_private="${OPTARG}" ;;
     P) override_source_publisher="${OPTARG}" ;;
     r) override_target_revision="${OPTARG}" ;;
+    i) override_info_type="${OPTARG}" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
     h|?) _set_overrides && \
@@ -830,6 +601,7 @@ app_opts=(
   "${source_publisher}"
   "${target_package}"
   "${target_revision}"
+  "${info_type}"
 )
 _ur_package_info \
   "${app_opts[@]}"

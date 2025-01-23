@@ -290,10 +290,11 @@ _publishers_update() {
 _publishers_list() {
   local \
     _gnupg_home="${1}" \
+    _target_address="${2}" \
     _gpg_opts=() \
     _msg=()
   _msg=(
-    "listing publishers"
+    "showing publishers"
   )
   _msg_info \
     "${_msg[*]}"
@@ -704,7 +705,8 @@ _ur_publishers() {
       "${_keys_update}"
   elif [[ "${_target_command}" == "list" ]]; then
     _publishers_list \
-      "${_gnupg_home}"
+      "${_gnupg_home}" \
+      "${_target_address}"
   elif [[ "${_target_command}" == "register" ]]; then
     _target_address="${_target_key}"
     if [[ "${_target_address}" == "" ]]; then
