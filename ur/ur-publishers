@@ -31,6 +31,7 @@ _global_variables() {
   cache_dir=""
   gnupg_home=""
   gnupg_private=""
+  keys_update=""
   key_publish=""
   user_name=""
   key_fingerprint=""
@@ -259,6 +260,7 @@ _publishers_update() {
     _compiler_output="${5}" \
     _work_dir="${6}" \
     _gnupg_home="${7}" \
+    _keys_update="${8}" \
     _msg=() \
     _publishers_db \
     _tmp_dir \
@@ -280,7 +282,9 @@ _publishers_update() {
       "${_publishers_db}"
   fi
   _publishers_new_get
-  _publishers_info_get
+  if [[ "${keys_update}" == "y" ]]; then
+    _publishers_info_get
+  fi
 }
 
 _publishers_list() {
@@ -644,12 +648,13 @@ _ur_publishers() {
     _gnupg_home="${11}" \
     _gnupg_private="${12}" \
     _key_publish="${13}" \
-    _user_name="${14}" \
-    _key_fingerprint="${15}" \
-    _full_name="${16}" \
-    _target_command="${17}" \
-    _target_key="${18}" \
-    _target_value="${19}" \
+    _keys_update="${14}" \
+    _user_name="${15}" \
+    _key_fingerprint="${16}" \
+    _full_name="${17}" \
+    _target_command="${18}" \
+    _target_key="${19}" \
+    _target_value="${20}" \
     _command_args=() \
     _cmd \
     _args=() \
@@ -660,7 +665,7 @@ _ur_publishers() {
     _up_bytecode \
     _up_compiler_output
   shift \
-    19
+    20
   _command_args+=(
     "$@"
   )
@@ -695,7 +700,8 @@ _ur_publishers() {
       "${_up_bytecode}" \
       "${_up_compiler_output}" \
       "${_cache_dir}" \
-      "${_gnupg_home}"
+      "${_gnupg_home}" \
+      "${_keys_update}"
   elif [[ "${_target_command}" == "list" ]]; then
     _publishers_list \
       "${_gnupg_home}"
@@ -832,31 +838,13 @@ _set_overrides() {
     "gnupg" \
     "private" \
     "$(_conf_dir_auto_detect)/gnupg"
-  _contract_version_auto_detect \
-    "$(_get \
-         "deployments" \
-         "dir")" \
-    "UserRepositoryPublishers" \
-    "up" \
-    "$(_get \
-         "target" \
-         "network")"
-  _contract_address_auto_detect \
+  _contract_setup_auto_detect \
     "ur" \
     "UserRepositoryPublishers" \
     "up" \
-    "$(_get \
-         "target" \
-         "network")" \
-    "$(_get \
-         "up" \
-         "version")" \
-    "$(_get \
-         "user" \
-         "level")" \
-    "$(_get \
-         "deployments" \
-         "dir")"
+    "${target_network}" \
+    "${user_level}" \
+    "${deployments_dir}"
   _set_override \
     "target" \
     "command" \
@@ -881,6 +869,10 @@ _set_overrides() {
     "key" \
     "fingerprint" \
     ""
+  _set_override \
+    "keys" \
+    "update" \
+    "y"
 }
 
 # Show help usage, with an exit status.
@@ -957,6 +949,8 @@ $(_display_networks \
                             Default: $(_get "gnupg" "home")
      -G <gnupg_private>     GNUPG private home directory.
                             Default: $(_get "gnupg" "private")
+     -y <y/n>               Whether to update publishers' keys.
+                            Default: $(_get "keys" "update")
      -P <y/n>               Whether to publish key.
                             Default: $(_get "key" "publish")
      -U <user_name>         Publisher's key username.
@@ -1001,13 +995,14 @@ _show_config() {
   _msg_info "           Wallet address:   $(_get "wallet" "address")"
   _msg_info "              Wallet name:   $(_get "wallet" "name")"
   _msg_info "              Wallet path:   $(_get "wallet" "path")"
-  _msg_info "          Wallet password:   $(_get "wallet" "password")"
-  _msg_info "              Wallet seed:   $(_get "wallet" "seed")"
-  _msg_info "           Target network:   $(_get "target" "network")"
-  _msg_info "                  API key:   $(_get "api" "key")"
-  _msg_info "          Cache directory:   $(_get "cache" "dir")"
-  _msg_info "          GNUPG directory:   $(_get "gnupg" "home")"
-  _msg_info "  GNUPG private directory:   $(_get "gnupg" "private")"
+  _msg_info "          Wallet password:   ${wallet_password}"
+  _msg_info "              Wallet seed:   ${wallet_seed}"
+  _msg_info "           Target network:   ${target_network}"
+  _msg_info "                  API key:   ${api_key}"
+  _msg_info "          Cache directory:   ${cache_dir}"
+  _msg_info "          GNUPG directory:   ${gnupg_home}"
+  _msg_info "  GNUPG private directory:   ${gnupg_private}"
+  _msg_info "  Publishers' keys update:   ${keys_update}"
   _msg_info "              Publish key:   $(_get "key" "publish")"
   _msg_info "             Key username:   $(_get "user" "name")"
   _msg_info "          Key fingerprint:   $(_get "key" "fingerprint")"
@@ -1023,7 +1018,7 @@ _requirements
 # shellcheck disable=SC2034
 while \
   getopts \
-    'A:V:ud:N:w:p:s:n:k:C:H:G:P:U:f:F:cvh?' \
+    'A:V:ud:N:w:p:s:n:k:C:H:G:y:P:U:f:F:cvh?' \
     arg; do
   case \
     "${arg}" in
@@ -1040,6 +1035,7 @@ while \
     C) override_cache_dir="${OPTARG}" ;;
     H) override_gnupg_home="${OPTARG}" ;;
     G) override_gnupg_private="${OPTARG}" ;;
+    y) override_keys_update="${OPTARG}" ;;
     P) override_key_publish="${OPTARG}" ;;
     U) override_user_name="${OPTARG}" ;;
     f) override_key_fingerprint="${OPTARG}" ;;
@@ -1097,63 +1093,26 @@ command_args+=(
 _set_overrides
 _show_config
 app_opts=(
-  "$(_get \
-       "up" \
-       "address")"
-  "$(_get \
-       "up" \
-       "version")"
-  "$(_get \
-       "deployments" \
-       "dir")"
-  "$(_get \
-       "wallet" \
-       "name")"
-  "$(_get \
-       "wallet" \
-       "path")"
-  "$(_get \
-       "wallet" \
-       "password")"
-  "$(_get \
-       "wallet" \
-       "seed")"
-  "$(_get \
-       "target" \
-       "network")"
-  "$(_get \
-       "api" \
-       "key")"
-  "$(_get \
-       "cache" \
-       "dir")"
-  "$(_get \
-       "gnupg" \
-       "home")"
-  "$(_get \
-       "gnupg" \
-       "private")"
-  "$(_get \
-       "key" \
-       "publish")"
-  "$(_get \
-       "user" \
-       "name")"
-  "$(_get \
-       "key" \
-       "fingerprint")"
-  "$(_get \
-       "full" \
-       "name")"
-  "$(_get \
-       "target" \
-       "command")"
-  "$(_get \
-       "target" \
-       "key")"
-  "$(_get \
-       "target" \
-       "value")"
+  "${up_address}"
+  "${up_version}"
+  "${deployments_dir}"
+  "${wallet_name}"
+  "${wallet_path}"
+  "${wallet_password}"
+  "${wallet_seed}"
+  "${target_network}"
+  "${api_key}"
+  "${cache_dir}"
+  "${gnupg_home}"
+  "${gnupg_private}"
+  "${key_publish}"
+  "${keys_update}"
+  "${user_name}"
+  "${key_fingerprint}"
+  "${full_name}"
+  "${target_command}"
+  "${target_key}"
+  "${target_value}"
 )
 _ur_publishers \
   "${app_opts[@]}"
