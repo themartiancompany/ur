@@ -155,6 +155,9 @@ install-scripts:
 	  "$(_PROJECT)/$(_PROJECT)" \
 	  "$(BIN_DIR)/$(_PROJECT)"
 	$(_INSTALL_EXE) \
+	  "$(_PROJECT)/$(_PROJECT)-package-info" \
+	  "$(BIN_DIR)/$(_PROJECT)-package-info"
+	$(_INSTALL_EXE) \
 	  "$(_PROJECT)/$(_PROJECT)-publishers" \
 	  "$(BIN_DIR)/$(_PROJECT)-publishers"
 	$(_INSTALL_EXE) \
