@@ -333,7 +333,7 @@ _recipe_purchase() {
       _purchase="y"
     elif [[ "${_auto_confirm}" == "n" ]]; then
       _msg=(
-        "purchase revision '${_revision}'" \
+        "Purchase revision '${_revision}'" \
         "of package '${_pkg}' by" \
         "publisher '${_publisher}'" \
         "at price '${_price}' wei? [y/N] "
@@ -353,10 +353,10 @@ _recipe_purchase() {
         "${_revision}" \
         "${_recipient}" 
       echo \
-        "revision correctly purchased."
+        "Revision correctly purchased."
     else
       echo \
-        "transaction not confirmed, exit."
+        "Transaction not confirmed, exit."
     fi
   fi
 }

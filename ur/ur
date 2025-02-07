@@ -16,154 +16,31 @@ source \
 # Check all required programs
 # are available
 _requirements() {
-  _check_cmd \
-    'git'
-  _check_cmd \
-    'rsync'
+  check_cmd \
+    'lur'
 }
 
 # shellcheck disable=SC2034
 _global_variables() {
   packaging_date=()
-  local_packages=()
-  repo_dir=""
-  repo_origin=""
-  no_build=""
-  output_dir=""
+  target_packages=()
+  package_origin=""
+  package_publisher=""
+  target_revision=""
+  work_dir=""
   color=""
   quiet=""
 }
 
-_aspe() {
-  local \
-    _pkgname="${1}" \
-    _source="${2}"
-  aspe \
-    -p \
-    "${_source}" \
-    "${_pkgname}"
-}
-
-_makepkg() {
-  local \
-    _pkgname="${1}" \
-    _source="${2}" \
-    _user="${3}"
-  local \
-    _key \
-    _awk_pgpkeys_cmd='/validpgpkeys=/{flag=1;next}/\)/{flag=0}flag' \
-    _validpgpkeys
-  _aspe \
-    "${_pkgname}"
-    "${_source}"
-  cd \
-    "${_pkgname}" || \
-    exit
-  source \
-    'PKGBUILD'
-  gpg \
-    --recv-keys \
-    "${validpgpkeys[@]}"
-  reallymakepkg
-  mv \
-    "${_pkgname}"*".pkg.tar."* \
-    "${_server}"
-}
-
-_build_pkg() {
-  local \
-    _pkgname="${1}" \
-    _mode="${2}"  \
-    _server="${3}" \
-    _pwd
-  _pwd="$(pwd)"
-  echo \
-    "building ${_pkgname}"
-  if [ "${_mode}" = "src" ]; then
-    _makepkg \
-      "${_pkgname}"
-  elif [ "${_mode}" = "fakepkg" ]; then
-    cd \
-      "${_server}" || \
-    exit
-    fakepkg \
-      "${_pkgname}"
-  fi
-  cd \
-    "${_server}" || \
-    exit
-  repo-add \
-    "${_profile}.db.tar.gz" \
-    "${_pkgname}"*".pkg.tar."*
-  cd \
-    "${_pwd}" || \
-    exit
-}
-
-_build_repo() {
-  local \
-    _mode="${1}" \
-    _packages="${2}" \
-    _server="${3}" \
-    _profile \
-    _pwd
-  _pwd=$(pwd)
-  _profile=$( \
-    basename \
-      "$(pwd)")
-  # shellcheck source=./packages.extra
-  # shellcheck disable=SC1091
-  source \
-    "${_pwd}/${_packages}"
-  [[ "${_server}" == "" ]] && \
-    _server="/tmp/ur/${_profile}"
-  rm \
-    -rf \
-      repo \
-      "${_server}"
-  mkdir \
-    -p \
-      repo \
-      "${_server}"
-  chown \
-    "$( \
-      id \
-        -u):$( \
-	  id \
-	    -g)" \
-    "${_server}"
-  chmod \
-    700 \
-    "${_server}" 
-  cd \
-    repo || \
-    exit
-  # shellcheck disable=SC2154
-  echo \
-    "building ${_packages[*]}"
-  for _pkg \
-    in "${_packages[@]}"; do
-    _build_pkg \
-      "${_pkg}" \
-      "${_mode}" \
-      "${_server}"
-  done
-  cd \
-    ..
-  rm \
-    -rf \
-      repo
-}
-
 # $@: packages
-_lur() {
+_ur() {
   local \
-    _output_dir="${1}" \
-    _repo_dir="${2}" \
-    _origin="${3}" \
-    _no_build="${4}" \
+    _package_origin="${1}" \
+    _package_publisher="${2}" \
+    _target_revision="${3}" \
+    _work_dir="${4}" \
     _packages=() \
-    _pkgs=() \
+    _lur_opts=() \
     _pacman_opts=() \
     _aspe_opts=() \
     _opts=() \
@@ -173,138 +50,34 @@ _lur() {
   _packages=(
     "$@"
   )
-  if [[ "${_no_build}" == "true" ]]; then
-    cd \
-      "${_repo_dir}"
-    for _pkg \
-      in "${_packages[@]}"; do
-      _msg_info \
-        "no build selected, looking for ${_pkg}"
-      _pkgs=(
-        $( \
-          find \
-            . \
-            -iname \
-              "${_pkg}*.pkg.*" \
-            -exec echo ${_repo_dir}/{} ';')
-      )
-      if [[ "${_pkgs[*]}" != "" ]]; then
-        _msg_info \
-          "No build preferred: found packages ${_pkgs[*]}"
-        _msg_info \
-          "copying packages to ${_output_dir}"
-        rsync \
-          "${_pkgs[@]}" \
-          "${_output_dir}"
-      elif [[ "${_pkgs[*]}" == "" ]]; then
-        _msg_info \
-          "not found anything in"
-        _msg_info \
-          "packaging ${_packages[*]}"
-        _pacman_opts+=(
-          -U
-          --noconfirm
-        )
-        _aspe_opts=(
-          -p
-            "${_origin}"
-        )
-        for _pkg \
-          in "${_packages[@]}"; do
-          _repo="$( \
-            mktemp \
-              -d)"
-          _opts=(
-            "${_aspe_opts[@]}"
-          )
-          cd \
-            "${_repo}"
-          aspe \
-              "${_opts[@]}" \
-              "${_pkg}"
-          _pkgs=(
-            $( \
-              find \
-                . \
-                -iname \
-                  '*.pkg.*' \
-                -exec echo ${_repo}/{} ';')
-          )
-          if [[ "${_pkgs[*]}" != "" ]]; then
-            _msg_info \
-              "found packages ${_pkgs[*]}"
-          elif [[ "${_pkgs[*]}" == "" ]]; then
-            _msg_info \
-              "packaging ${_pkg}"
-          fi
-          _sigs=(
-            $( \
-              find \
-                . \
-                -iname \
-                  '*.sig' \
-                -exec echo ${_repo}/{} ';')
-          )
-          _msg_info \
-            "removing signatures ${_sigs[*]}"
-          mv \
-            "${_sigs[@]}" \
-            .
-          rm \
-            *".sig"
-          _pkgs=(
-            $( \
-              find \
-                . | \
-                grep \
-                  "pkg")
-          )
-          _msg_info \
-            "moving ${_pkgs[*]}"
-          mv \
-            "${_pkgs[@]}" \
-            .
-          _pkgs=(
-            $(ls \
-                *".pkg."*)
-          )
-          _msg_info \
-            "installing ${_pkgs[*]}"
-          pacman \
-            "${_pacman_opts[@]}" \
-            "${_pkgs[@]}"
+  for _pkg in "${_packages[@]}"; do
+    lur \
+      "${_pkg}"
+  done
+}
 
-        done
-      fi
-    done
+_work_dir_auto_detect() {
+  local \
+    _dir
+  _dir=""
+  if [[ "${work_dir}" == "" ]]; then
+    _dir="${HOME}/.cache/ur"
+    mkdir \
+      -p \
+      "${_dir}"
+    chmod \
+      700 \
+      "${_dir}"
   fi
-  cd \
-    "${OLDPWD}"
+  _set_override \
+    "work" \
+    "dir" \
+    "${_dir}"
 }
 
 # Set defaults and, if present, overrides
 # from arch-grub command line option parameters
 _set_overrides() {
-  _set_override \
-    "packaging" \
-    "date" \
-    "$(_get_date_human)"
-  _set_override \
-    "repo" \
-    "dir" \
-    "${HOME}/lur"
-  _set_override \
-    "repo" \
-    "origin" \
-    "ur"
-  _set_override \
-    "no" \
-    "build" \
-    "false"
-   _set_override \
-    "output" \
-    "dir" \
-    "$(pwd)"
 if [[ -v override_color ]]; then
     color="${override_color}"
   elif [[ -z "${color}" ]]; then
@@ -315,6 +88,19 @@ if [[ -v override_color ]]; then
   elif [[ -z "${quiet}" ]]; then
     quiet="y"
   fi
+  _set_override \
+    "packaging" \
+    "date" \
+    "$(_get_date_human)"
+  _set_override \
+    "package" \
+    "origin" \
+    "ur"
+  _set_override \
+    "package" \
+    "publisher" \
+    ""
+  _work_dir_auto_detect
 }
 
 # Show help usage, with an exit status.
@@ -329,22 +115,25 @@ _usage() {
       _usage_text << \
         ENDUSAGETEXT || true
 
+Uncensorable, distributed user repository and application store.
+
 Usage:
   $(_get "app" "name")
     [options]
     [packages]
   options:
-     -d <repo_dir>        Repo directory.
-			  Default: $(_get "repo" "dir")
-     -p <origin>          Repo origin.
-			  Default: $(_get "repo" "origin")
-     -o <output_dir>      Output directory.
-			  Default: $(_get "output" "dir")
-     -n                   No build.
-			  Default: $(_get "no" "build")
-     -c                   Colors.
-     -h                   This message.
-     -v                   Enable verbose output
+     -S <package_origin>     Package origin, it can be
+                             'ur' and 'fur'.
+                             Default: ${package_origin}
+     -P <package_publisher>  Package publisher.
+                             Default: ${package_publisher}
+     -r <target_revision>    Package target revision.
+                             Default: ${target_revision}
+     -w <work_dir>           Work directory.
+                             Default: ${target_revision}
+     -c                      Colors.
+     -h                      This message.
+     -v                      Enable verbose output
 ENDUSAGETEXT
   _printf \
     '%s\n' \
@@ -356,12 +145,12 @@ ENDUSAGETEXT
 # Shows configuration options.
 _show_config() {
   _msg_info "${app_name} configuration"
-  _msg_info "           Packaging date:   $(_get "packaging" "date")"
-  _msg_info "              Repo origin:   $(_get "repo" "origin")"
-  _msg_info "           Repo directory:   $(_get "repo" "dir")"
-  _msg_info "                 No build:   $(_get "no" "build")"
-  _msg_info "                 Packages:   $(_get "local" "packages")"
-  _msg_info "         Output directory:   $(_get "output" "dir")"
+  _msg_info "           Packaging date:   ${install_date}"
+  _msg_info "           Package origin:   ${package_origin}"
+  _msg_info "        Package publisher:   ${package_publisher}"
+  _msg_info "          Target revision:   ${target_revision}"
+  _msg_info "           Work directory:   ${work_dir}"
+  _msg_info "                 Packages:   ${target_packages[*]}"
 }
 
 _globals
@@ -371,14 +160,14 @@ _requirements
 # shellcheck disable=SC2034
 while \
   getopts \
-    'd:p:o:ncvh?' \
+    'S:P:r:w:cvh?' \
     arg; do
   case \
     "${arg}" in
-    d) override_repo_dir="${OPTARG}" ;;
-    p) override_repo_origin="${OPTARG}" ;;
-    o) override_output_dir="${OPTARG}" ;;
-    n) override_no_build="true" ;;
+    S) override_package_origin="${OPTARG}" ;;
+    P) override_package_publisher="${OPTARG}" ;;
+    r) override_target_revision="${OPTARG}" ;;
+    w) override_work_dir="${OPTARG}" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
     h|?) _set_overrides && \
@@ -401,19 +190,19 @@ shift \
 (( $# < 1 )) && \
   _usage \
     1
-local_packages=(
+target_packages=(
   $@
 )
 _config_user_init \
-  "lur"
+  "ur"
 _set_overrides
 _show_config
 app_opts=(
-  "${output_dir}"
-  "${repo_dir}"
-  "${repo_origin}"
-  "${no_build}"
-  "${local_packages[@]}"
+  "${package_origin}"
+  "${package_publisher}"
+  "${target_revision}"
+  "${work_dir}"
+  "${target_packages[@]}"
 )
-_lur \
+_ur \
   "${app_opts[@]}"
