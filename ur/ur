@@ -16,8 +16,12 @@ source \
 # Check all required programs
 # are available
 _requirements() {
-  check_cmd \
+  _check_cmd \
     'lur'
+  _check_cmd \
+    'fur'
+  _check_cmd \
+    'inteppacman'
 }
 
 # shellcheck disable=SC2034
@@ -41,19 +45,44 @@ _ur() {
     _work_dir="${4}" \
     _packages=() \
     _lur_opts=() \
+    _inteppacman_opts=() \
     _pacman_opts=() \
-    _aspe_opts=() \
-    _opts=() \
+    _cmd \
+    _cmd_opts=() \
     _pkg
   shift \
     4
   _packages=(
     "$@"
   )
+  if [[ "${quiet}" == "n" ]]; then
+    _cmd_opts+=(
+      -v
+    )
+    inteppacman_opts+=(
+      -v
+    )
+  fi
+  if [[ "${_package_origin}" == "ur" ]]; then
+    _cmd="lur"
+    _cmd_opts+=(
+      -o
+        "${_work_dir}"
+    )
+  elif [[ "${_package_origin}" == "fur" ]]; then
+    _cmd="fur"
+  fi
   for _pkg in "${_packages[@]}"; do
-    lur \
-      "${_pkg}"
+      "${_cmd}" \
+        "${_cmd_opts[@]}" \
+	"${_pkg}"
   done
+  if [[ "${_package_origin}" == "lur" ]]; then
+    inteppacman \
+      "${_inteppacman_opts[@]}" -- \
+      -U \
+      "${_work_dir}/"*".pkg."
+  fi
 }
 
 _work_dir_auto_detect() {
