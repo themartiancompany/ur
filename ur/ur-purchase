@@ -777,6 +777,7 @@ _show_config() {
   _msg_info "           Target network:   $(_get "target" "network")"
   _msg_info "                  API key:   $(_get "api" "key")"
   _msg_info "           Target package:   $(_get "target" "package")"
+  _msg_info "         Target publisher:   $(_get "target" "publisher")"
   _msg_info "          Target revision:   $(_get "target" "revision")"
   _msg_info "         Target recipient:   $(_get "target" "recipient")"
   _msg_info "             Target price:   $(_get "target" "price")"
