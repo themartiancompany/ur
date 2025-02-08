@@ -953,33 +953,33 @@ $(_display_networks \
      -d <deployments_dir>   Contracts deployments directory.
                             Default: ${deployments_dir}
      -N <wallet_name>       Wallet name.
-                            Default: $(_get "wallet" "name")
+                            Default: ${wallet_name}
      -w <wallet_path>       Wallet path.
-                            Default: $(_get "wallet" "path")
+                            Default: ${wallet_path}
      -p <wallet_password>   Wallet password.
-                            Default: $(_get "wallet" "password")
+                            Default: ${wallet_password}
      -s <wallet_seed>       Wallet seed path.
-                            Default: $(_get "wallet" "seed")
+                            Default: ${wallet_seed}
      -n <network>           EVM network name (${_networks[*]}).
-                            Default: $(_get "target" "network")
+                            Default: ${target_network}
      -k <api_key>           Etherscan-like service key.
-                            Default: $(_get "api" "key")
+                            Default: ${api_key}
      -C <cache_dir>         Work directory.
-                            Default: $(_get "cache" "dir")
+                            Default: ${cache_dir}
      -H <gnupg_home>        GNUPG home directory.
-                            Default: $(_get "gnupg" "home")
+                            Default: ${gnupg_home}
      -G <gnupg_private>     GNUPG private home directory.
-                            Default: $(_get "gnupg" "private")
+                            Default: ${gnupg_private}
      -y <y/n>               Whether to update publishers' keys.
-                            Default: $(_get "keys" "update")
+                            Default: ${keys_update}
      -P <y/n>               Whether to publish key.
-                            Default: $(_get "key" "publish")
+                            Default: ${key_publish}
      -U <user_name>         Publisher's key username.
-                            Default: $(_get "user" "name")
+                            Default: ${user_name}
      -f <key_fingerprint>   Publisher's key fingerprint.
-                            Default: $(_get "key" "fingerprint")
+                            Default: ${key_fingerprint}
      -F <full_name>         Publisher's key full name.
-                            Default: $(_get "full" "name")
+                            Default: ${full_name}
 
      -h                     This message.
      -c                     Enable color output

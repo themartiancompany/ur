@@ -173,8 +173,9 @@ _pkg_ur() {
   local \
     _pkg="${1}" \
     _revision \
-    _pkg_dir
-  if [[ "${_package_origin}" == "lur" ]]; then
+    _pkg_dir \
+    _cmd_opts=()
+  if [[ "${_package_origin}" == "ur" ]]; then
     _pkg_dir="${_work_dir}/packages/${_pkg}"
     _revision="$( \
       echo \
@@ -200,7 +201,7 @@ _pkg_ur() {
   "${_cmd}" \
     "${_cmd_opts[@]}" \
     "${_pkg}"
-  if [[ "${_package_origin}" == "lur" ]]; then
+  if [[ "${_package_origin}" == "ur" ]]; then
     inteppacman \
       "${_inteppacman_opts[@]}" -- \
       "${_pacman_opts[@]}" \
@@ -238,6 +239,9 @@ _ur() {
       -v
     )
     _inteppacman_opts+=(
+      -v
+    )
+    _lur_opts+=(
       -v
     )
     _pacman_opts+=(
