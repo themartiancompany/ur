@@ -16,24 +16,172 @@ source \
 # Check all required programs
 # are available
 _requirements() {
+  local \
+    _os
+  _os="$( \
+    uname \
+      -o)"
   _check_cmd \
     'lur'
   _check_cmd \
     'fur'
   _check_cmd \
     'inteppacman'
+  _check_cmd \
+    "dbus"
+  _check_cmd \
+    "gio" \
+    "glib2"
 }
 
 # shellcheck disable=SC2034
 _global_variables() {
-  packaging_date=()
+  install_date=()
   target_packages=()
   package_origin=""
   package_publisher=""
   target_revision=""
   work_dir=""
+  package_run=""
   color=""
   quiet=""
+}
+
+_pkg_bin_select() {
+  local \
+    _pkg="${1}" \
+    _bins=() \
+    _bins_results=() \
+    _usr \
+    _bin
+  _usr="$( \
+    _get_usr)"
+  readarray \
+    -t \
+    _bins_results <<<"$( \
+      pacman \
+        -Ql \
+	  "${_pkg}" | \ 
+        grep \
+	  "${_usr}/bin/")"
+  for _bin in "${_bins_results[@]}"; do
+    _bins+=( "$( \
+      basename \
+        "${_bin#${_pkg} }")"
+    )
+  done
+  if [[ 1 ==  "${#_bins}" ]]; then
+    _cmd=(
+      "${_bins[0]}"
+    )
+  elif (( 0 <  "${#_bins}" )); then
+    for _bin in "${_bins[@]}"; do
+      if [[ "${_bin}" == "${_pkg}" ]]; then
+        _cmd=(
+	  "${_pkg}"
+        )
+        break
+      fi
+    done
+  fi
+}
+
+_pkg_applications_select() {
+  local \
+    _pkg="${1}" \
+    _applications=() \
+    _applications_results=() \
+    _usr \
+    _app
+  _usr="$( \
+    _get_usr)"
+  readarray \
+    -t \
+    _applications_results <<<"$( \
+      pacman \
+        -Ql \
+	  "${_pkg}" | \ 
+        grep \
+	  "${_usr}/usr/share/applications/")"
+  for _app in "${_applications_results[@]}"; do
+    _applications+=(
+      "${_app#${_pkg} }"
+    )
+  done
+  if [[ 1 ==  "${#_applications}" ]]; then
+    _cmd=(
+      "dbus-launch"
+        "gio"
+	  "${_applications[0]}"
+    )
+  elif (( 0 <  "${#_applications}" )); then
+    for _bin in "${_bins[@]}"; do
+      if [[ "${_bin}" == "${_pkg}" ]]; then
+      _cmd=(
+        "dbus-launch"
+          "gio"
+            "${_bins[0]}"
+      )
+        _cmd="${_pkg}"
+        break
+      fi
+    done
+  fi
+}
+
+_pkg_run() {
+  local \
+    _pkg="${1}" \
+    _cmd=()
+  _pkg_bin_select \
+    "${_pkg}"
+  if [[ "${_cmd}" == "" ]]; then
+    _pkg_applications_select \
+      "${_pkg}"
+  fi
+}
+
+_pkg_ur() {
+  local \
+    _pkg="${1}" \
+    _revision \
+    _pkg_dir
+  if [[ "${_package_origin}" == "lur" ]]; then
+    _pkg_dir="${_work_dir}/packages/${_pkg}"
+    _revision="$( \
+      echo \
+        "${_pkg}" | \
+        awk \
+          -F \
+            "=" \
+          '{print $2}')"
+    mkdir \
+      -p \
+      "${_pkg_dir}"
+    if [[ "${_revision}" == "" ]]; then
+      _revision="${_target_revision}"
+    fi
+    _cmd_opts=(
+      "${_lur_opts[@]}"
+      -o
+        "${_pkg_dir}"
+      -r
+        "${_target_revision}"
+    )
+  fi
+  "${_cmd}" \
+    "${_cmd_opts[@]}" \
+    "${_pkg}"
+  if [[ "${_package_origin}" == "lur" ]]; then
+    inteppacman \
+      "${_inteppacman_opts[@]}" -- \
+      "${_pacman_opts[@]}" \
+      "${_pkg_dir}/"*".pkg."*
+  fi
+  if [[ "${_run_package}" == "y" ]]; then
+    _pkg_run \
+      "${_pkg}"
+  fi
 }
 
 # $@: packages
@@ -43,15 +191,17 @@ _ur() {
     _package_publisher="${2}" \
     _target_revision="${3}" \
     _work_dir="${4}" \
+    _package_run="${5}" \
     _packages=() \
     _lur_opts=() \
     _inteppacman_opts=() \
     _pacman_opts=() \
     _cmd \
     _cmd_opts=() \
-    _pkg
+    _pkg \
+    _revision
   shift \
-    4
+    5
   _packages=(
     "$@"
   )
@@ -59,30 +209,32 @@ _ur() {
     _cmd_opts+=(
       -v
     )
-    inteppacman_opts+=(
+    _inteppacman_opts+=(
+      -v
+    )
+    _pacman_opts+=(
       -v
     )
   fi
   if [[ "${_package_origin}" == "ur" ]]; then
     _cmd="lur"
-    _cmd_opts+=(
-      -o
-        "${_work_dir}"
+    _lur_opts+=(
+      -S
+        "ur"
+      -d
+        "${_work_dir}/lur"
+    )
+    _pacman_opts+=(
+      --noconfirm
+      -U
     )
   elif [[ "${_package_origin}" == "fur" ]]; then
     _cmd="fur"
   fi
   for _pkg in "${_packages[@]}"; do
-      "${_cmd}" \
-        "${_cmd_opts[@]}" \
-	"${_pkg}"
+    _pkg_ur \
+      "${_pkg}"
   done
-  if [[ "${_package_origin}" == "lur" ]]; then
-    inteppacman \
-      "${_inteppacman_opts[@]}" -- \
-      -U \
-      "${_work_dir}/"*".pkg."
-  fi
 }
 
 _work_dir_auto_detect() {
@@ -118,7 +270,7 @@ if [[ -v override_color ]]; then
     quiet="y"
   fi
   _set_override \
-    "packaging" \
+    "install" \
     "date" \
     "$(_get_date_human)"
   _set_override \
@@ -129,7 +281,15 @@ if [[ -v override_color ]]; then
     "package" \
     "publisher" \
     ""
+  _set_override \
+    "target" \
+    "revision" \
+    "latest"
   _work_dir_auto_detect
+  _set_override \
+    "package" \
+    "run" \
+    "y"
 }
 
 # Show help usage, with an exit status.
@@ -160,6 +320,10 @@ Usage:
                              Default: ${target_revision}
      -w <work_dir>           Work directory.
                              Default: ${target_revision}
+     -b <y/n>                Whether to run the program
+                             after installed.
+                             Default: ${package_run}
+
      -c                      Colors.
      -h                      This message.
      -v                      Enable verbose output
@@ -174,11 +338,12 @@ ENDUSAGETEXT
 # Shows configuration options.
 _show_config() {
   _msg_info "${app_name} configuration"
-  _msg_info "           Packaging date:   ${install_date}"
+  _msg_info "             Install date:   ${install_date}"
   _msg_info "           Package origin:   ${package_origin}"
   _msg_info "        Package publisher:   ${package_publisher}"
   _msg_info "          Target revision:   ${target_revision}"
   _msg_info "           Work directory:   ${work_dir}"
+  _msg_info "              Package run:   ${package_run}"
   _msg_info "                 Packages:   ${target_packages[*]}"
 }
 
@@ -231,6 +396,7 @@ app_opts=(
   "${package_publisher}"
   "${target_revision}"
   "${work_dir}"
+  "${package_run}"
   "${target_packages[@]}"
 )
 _ur \

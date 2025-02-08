@@ -698,21 +698,21 @@ $(_display_networks \
   options:
      -r <recipient>         Address of the user for which the package
                             recipe is being purchased.
-                            Default: $(_get "target" "recipient")
+                            Default: ${target_recipient}
      -P <price>             Manually specify an amount to purchase
                             the recipe for.
-                            Default: $(_get "target" "price")
+                            Default: ${target_price}
      -m <measure_unit>      Unit of measure for the network
                             purchasing currency.
                             It can be 'ether' or 'wei'.
-                            Default: $(_get "measure" "unit")
+                            Default: ${measure_unit}
      -y                     If enabled do not ask for confirmation
                             before purchase.
-                            Default: $(_get "auto" "confirm")
+                            Default: ${auto_confirm}
      -A <ur_address>        Address of the 'User Repository'
                             contract on the
                             network.
-                            Default: $(_get "ur" "address")
+                            Default: ${ur_address}
      -V <ur_version>        Version of the target 'User Repository'
                             contract.
                             Default: $(_get "ur" "version")
@@ -864,57 +864,23 @@ command_args+=(
 _set_overrides
 _show_config
 app_opts=(
-  "$(_get \
-       "ur" \
-       "address")"
-  "$(_get \
-       "ur" \
-       "version")"
-  "$(_get \
-       "deployments" \
-       "dir")"
-  "$(_get \
-       "wallet" \
-       "name")"
-  "$(_get \
-       "wallet" \
-       "path")"
-  "$(_get \
-       "wallet" \
-       "password")"
-  "$(_get \
-       "wallet" \
-       "seed")"
-  "$(_get \
-       "target" \
-       "network")"
-  "$(_get \
-       "api" \
-       "key")"
-  "$(_get \
-       "cache" \
-       "dir")"
-  "$(_get \
-       "target" \
-       "recipient")"
-  "$(_get \
-       "target" \
-       "package")"
-  "$(_get \
-       "target" \
-       "publisher")"
-  "$(_get \
-       "target" \
-       "revision")"
-  "$(_get \
-       "target" \
-       "price")"
-  "$(_get \
-       "measure" \
-       "unit")"
-  "$(_get \
-       "auto" \
-       "confirm")"
+  "${ur_address}"
+  "${ur_version}"
+  "${deployments_dir}"
+  "${wallet_name}"
+  "${wallet_path}"
+  "${wallet_password}"
+  "${wallet_seed}"
+  "${target_network}"
+  "${api_key}"
+  "${cache_dir}"
+  "${target_recipient}"
+  "${target_package}"
+  "${target_publisher}"
+  "${target_revision}"
+  "${target_price}"
+  "${measure_unit}"
+  "${auto_confirm}"
 )
 _ur_purchase \
   "${app_opts[@]}"
