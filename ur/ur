@@ -46,8 +46,10 @@ _requirements() {
     'fur'
   _check_cmd \
     'inteppacman'
-  _check_cmd \
-    "dbus"
+  if [[ "${_os}" == "GNU/Linux" ]]; then
+    _check_cmd \
+      "dbus"
+  fi
   _check_cmd \
     "gio" \
     "glib2"
