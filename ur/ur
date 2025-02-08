@@ -2,6 +2,25 @@
 #
 # SPDX-License-Identifier: AGPL-3.0
 
+#    ----------------------------------------------------------------------
+#    Copyright © 2023, 2024, 2025  Pellegrino Prevete
+#
+#    All rights reserved
+#    ----------------------------------------------------------------------
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 _bin="$( \
   dirname \
     "$( \
@@ -92,7 +111,8 @@ _pkg_applications_select() {
     _applications=() \
     _applications_results=() \
     _usr \
-    _app
+    _app \
+    _app_name
   _usr="$( \
     _get_usr)"
   readarray \
@@ -115,14 +135,19 @@ _pkg_applications_select() {
 	  "${_applications[0]}"
     )
   elif (( 0 <  "${#_applications}" )); then
-    for _bin in "${_bins[@]}"; do
-      if [[ "${_bin}" == "${_pkg}" ]]; then
-      _cmd=(
-        "dbus-launch"
-          "gio"
-            "${_bins[0]}"
-      )
-        _cmd="${_pkg}"
+    for _app in "${_applications[@]}"; do
+      _app_name="$( \
+        basename \
+          "${_app}" | \
+          tr \
+            '[:upper:]' \
+            '[:lower:]')"
+      if [[ "${_app_name}" == "${_pkg}" ]]; then
+        _cmd=(
+          "dbus-launch"
+            "gio"
+              "${_app}"
+        )
         break
       fi
     done
@@ -139,6 +164,7 @@ _pkg_run() {
     _pkg_applications_select \
       "${_pkg}"
   fi
+  "${_cmd[*]}"
 }
 
 _pkg_ur() {

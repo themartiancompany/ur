@@ -2,6 +2,25 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+#    ----------------------------------------------------------------------
+#    Copyright © 2024, 2025  Pellegrino Prevete
+#
+#    All rights reserved
+#    ----------------------------------------------------------------------
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 _bin="$( \
   dirname \
     "$( \
@@ -923,16 +942,16 @@ $(_display_networks \
      -A <up_address>        Address of the 'User Repository
                             Publishers' contract on the
                             network.
-                            Default: $(_get "up" "address")
+                            Default: ${up_address}
      -V <up_version>        Version of the target 'User Repository
                             Publishers' contract.
-                            Default: $(_get "up" "version")
+                            Default: ${up_version}
      -u                     Whether to retrieve publishers' contract
                             address from user directory or custom
                             deployment.
-                            Default: $(_get "user" "level")
+                            Default: ${user_level}
      -d <deployments_dir>   Contracts deployments directory.
-                            Default: $(_get "deployments" "dir")
+                            Default: ${deployments_dir}
      -N <wallet_name>       Wallet name.
                             Default: $(_get "wallet" "name")
      -w <wallet_path>       Wallet path.
