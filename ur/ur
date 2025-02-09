@@ -294,7 +294,7 @@ _ur() {
     elif [[ "${_dependencies_check}" == "n" ]]; then
       _pacman_opts+=(
         -Udd
-	--overwrite"*"
+	--overwrite="*"
       )
     fi
   elif [[ "${_package_origin}" == "fur" ]]; then
