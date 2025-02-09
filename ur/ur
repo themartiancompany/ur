@@ -100,7 +100,8 @@ _pkg_bin_select() {
         -Ql \
 	  "${_pkg}" | \ 
         grep \
-	  "${_usr}/bin/")"
+	  "${_usr}/bin/" || \
+	true)"
   for _bin in "${_bins_results[@]}"; do
     _bins+=( "$( \
       basename \
@@ -140,7 +141,8 @@ _pkg_applications_select() {
         -Ql \
 	  "${_pkg}" | \ 
         grep \
-	  "${_usr}/usr/share/applications/")"
+	  "${_usr}/usr/share/applications/" || \
+	true)"
   for _app in "${_applications_results[@]}"; do
     _applications+=(
       "${_app#${_pkg} }"
