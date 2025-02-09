@@ -75,9 +75,24 @@ _pkg_bin_select() {
     _bins=() \
     _bins_results=() \
     _usr \
-    _bin
+    _bin \
+    _pkg_installed_check \
+    _pkg_not_installed_msg
   _usr="$( \
     _get_usr)"
+  _pkg_installed_check="$( \
+    pacman \
+      -Qi \
+      "${_pkg}" \
+      2>&1)"
+  _pkg_not_installed_msg=(
+    "error: package '${_pkg}' was not found"
+  )
+  if [[ "${_pkg_installed_check}" == "${_pkg_not_installed_msg[*]}" ]]; then
+    _msg_error \
+      "${_pkg_not_installed_msg[*]}" \
+      1
+  fi
   readarray \
     -t \
     _bins_results <<<"$( \
@@ -160,14 +175,23 @@ _pkg_applications_select() {
 _pkg_run() {
   local \
     _pkg="${1}" \
-    _cmd=()
+    _cmd=() \
+    _msg=()
   _pkg_bin_select \
     "${_pkg}"
   if [[ "${_cmd}" == "" ]]; then
     _pkg_applications_select \
       "${_pkg}"
   fi
-  "${_cmd[*]}"
+  if [[ "${_cmd[*]}" == "" ]]; then
+    _msg=(
+      "No way to run the package found."
+    )
+    _msg_warning \
+      "${_msg[*]}"
+  elif [[ "${_cmd[*]}" != "" ]]; then
+    "${_cmd[*]}"
+  fi
 }
 
 _pkg_ur() {
