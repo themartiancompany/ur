@@ -257,6 +257,8 @@ _ur() {
         "ur"
       -d
         "${_work_dir}/lur"
+      -D
+        "${_dependencies_check}"
     )
     _pacman_opts+=(
       --noconfirm
