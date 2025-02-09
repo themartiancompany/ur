@@ -139,7 +139,7 @@ _pkg_applications_select() {
     _applications_results <<<"$( \
       pacman \
         -Ql \
-	  "${_pkg}" | \ 
+	  "${_pkg}" | \
         grep \
 	  "${_usr}/usr/share/applications/" || \
 	true)"
