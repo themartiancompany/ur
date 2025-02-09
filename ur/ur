@@ -98,7 +98,7 @@ _pkg_bin_select() {
     _bins_results <<<"$( \
       pacman \
         -Ql \
-	  "${_pkg}" | \ 
+	  "${_pkg}" | \
         grep \
 	  "${_usr}/bin/" || \
 	true)"
