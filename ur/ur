@@ -208,7 +208,7 @@ _pkg_ur() {
       "${_pacman_opts[@]}" \
       "${_pkg_dir}/"*".pkg."*
   fi
-  if [[ "${_run_package}" == "y" ]]; then
+  if [[ "${_package_run}" == "y" ]]; then
     _pkg_run \
       "${_pkg}"
   fi
