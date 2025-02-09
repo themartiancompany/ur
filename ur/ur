@@ -64,6 +64,7 @@ _global_variables() {
   target_revision=""
   work_dir=""
   package_run=""
+  dependencies_check=""
   color=""
   quiet=""
 }
@@ -221,6 +222,7 @@ _ur() {
     _target_revision="${3}" \
     _work_dir="${4}" \
     _package_run="${5}" \
+    _dependencies_check="${6}" \
     _packages=() \
     _lur_opts=() \
     _inteppacman_opts=() \
@@ -258,8 +260,16 @@ _ur() {
     )
     _pacman_opts+=(
       --noconfirm
-      -U
     )
+    if [[ "${_dependencies_check}" == "y" ]]; then
+      _pacman_opts+=(
+        -U
+      )
+    elif [[ "${_dependencies_check}" == "n" ]]; then
+      _pacman_opts+=(
+        -Udd
+      )
+    fi
   elif [[ "${_package_origin}" == "fur" ]]; then
     _cmd="fur"
   fi
@@ -322,6 +332,10 @@ if [[ -v override_color ]]; then
     "package" \
     "run" \
     "y"
+  _set_override \
+    "dependencies" \
+    "check" \
+    "y"
 }
 
 # Show help usage, with an exit status.
@@ -355,6 +369,9 @@ Usage:
      -b <y/n>                Whether to run the program
                              after installed.
                              Default: ${package_run}
+     -d <y/n>                Whether to skip dependencies
+                             check when installing.
+                             Default: ${dependencies_check}
 
      -c                      Colors.
      -h                      This message.
@@ -375,6 +392,7 @@ _show_config() {
   _msg_info "        Package publisher:   ${package_publisher}"
   _msg_info "          Target revision:   ${target_revision}"
   _msg_info "           Work directory:   ${work_dir}"
+  _msg_info "       Dependencies check:   ${dependencies_check}"
   _msg_info "              Package run:   ${package_run}"
   _msg_info "                 Packages:   ${target_packages[*]}"
 }
@@ -386,7 +404,7 @@ _requirements
 # shellcheck disable=SC2034
 while \
   getopts \
-    'S:P:r:w:cvh?' \
+    'S:P:r:w:b:d:cvh?' \
     arg; do
   case \
     "${arg}" in
@@ -394,6 +412,8 @@ while \
     P) override_package_publisher="${OPTARG}" ;;
     r) override_target_revision="${OPTARG}" ;;
     w) override_work_dir="${OPTARG}" ;;
+    b) override_package_run="${OPTARG}" ;;
+    d) override_dependencies_check="${OPTARG}" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
     h|?) _set_overrides && \
@@ -429,6 +449,7 @@ app_opts=(
   "${target_revision}"
   "${work_dir}"
   "${package_run}"
+  "${dependencies_check}"
   "${target_packages[@]}"
 )
 _ur \
