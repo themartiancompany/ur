@@ -75,6 +75,9 @@ _requirements() {
     'evm-contract-deployment-networks' \
     'evm-contracts-tools'
   _check_cmd \
+    'evm-gpg' \
+    'evm-gnupg'
+  _check_cmd \
     'evm-wallet'
   _check_cmd \
     'evm-openpgp-key-publish' \
@@ -804,47 +807,33 @@ _set_overrides() {
          "level")"
   _network_auto_detect \
     "UserRepositoryPublishers" \
-    "$(_get \
-         "deployments" \
-         "dir")" \
-    "$(_get \
-         "user" \
-         "level")"
+    "${deployments_dir}" \
+    "${user_level}"
   _api_key_auto_detect \
-    "$(_get \
-         "target" \
-         "network")"
+    "${target_network}"
   _set_override \
     "wallet" \
     "path" \
     "$(_wallet_path_get \
          "evm-wallet" \
-         "$(_get \
-              "wallet" \
-              "name")")"
+         "${wallet_name}")"
   _secret_auto_detect \
     "seed" \
     "seed" \
     "evm-wallet" \
-    "$(_get \
-         "wallet" \
-         "name")"
+    "${wallet_name}"
   _secret_auto_detect \
     "password" \
     "plain" \
     "evm-wallet" \
-    "$(_get \
-         "wallet" \
-         "name")"
+    "${wallet_name}"
   _set_override \
     "wallet" \
     "address" \
     "$(evm-wallet \
          get \
-           "$(_get \
-                "wallet" \
-                "name")" \
-           "address")"
+           "${wallet_name}" \
+           address)"
   _set_override \
     "cache" \
     "dir" \

@@ -715,27 +715,27 @@ $(_display_networks \
                             Default: ${ur_address}
      -V <ur_version>        Version of the target 'User Repository'
                             contract.
-                            Default: $(_get "ur" "version")
+                            Default: ${ur_version}
      -u                     Whether to retrieve publishers' contract
                             address from user directory or custom
                             deployment.
-                            Default: $(_get "user" "level")
+                            Default: ${user_level}
      -d <deployments_dir>   Contracts deployments directory.
-                            Default: $(_get "deployments" "dir")
+                            Default: ${deployments_dir}
      -N <wallet_name>       Wallet name.
-                            Default: $(_get "wallet" "name")
+                            Default: ${wallet_name}
      -w <wallet_path>       Wallet path.
-                            Default: $(_get "wallet" "path")
+                            Default: ${wallet_path}
      -p <wallet_password>   Wallet password.
-                            Default: $(_get "wallet" "password")
+                            Default: ${wallet_password}
      -s <wallet_seed>       Wallet seed path.
-                            Default: $(_get "wallet" "seed")
+                            Default: ${wallet_seed}
      -n <network>           EVM network name (${_networks[*]}).
-                            Default: $(_get "target" "network")
+                            Default: ${target_network}
      -k <api_key>           Etherscan-like service key.
-                            Default: $(_get "api" "key")
+                            Default: ${api_key}
      -C <cache_dir>         Work directory.
-                            Default: $(_get "cache" "dir")
+                            Default: ${cache_dir}
 
      -h                     This message.
      -c                     Enable color output
@@ -764,26 +764,26 @@ _display_flags() {
 # Shows configuration options.
 _show_config() {
   _msg_info "${app_name} configuration"
-  _msg_info "            Purchase date:   $(_get "purchase" "date")"
-  _msg_info "  User Repository address:   $(_get "ur" "address")"
-  _msg_info "  User Repository version:   $(_get "ur" "version")"
-  _msg_info "               User level:   $(_get "user" "level")"
-  _msg_info "    Deployments directory:   $(_get "deployments" "dir")"
-  _msg_info "           Wallet address:   $(_get "wallet" "address")"
-  _msg_info "              Wallet name:   $(_get "wallet" "name")"
-  _msg_info "              Wallet path:   $(_get "wallet" "path")"
-  _msg_info "          Wallet password:   $(_get "wallet" "password")"
-  _msg_info "              Wallet seed:   $(_get "wallet" "seed")"
-  _msg_info "           Target network:   $(_get "target" "network")"
-  _msg_info "                  API key:   $(_get "api" "key")"
-  _msg_info "           Target package:   $(_get "target" "package")"
-  _msg_info "         Target publisher:   $(_get "target" "publisher")"
-  _msg_info "          Target revision:   $(_get "target" "revision")"
-  _msg_info "         Target recipient:   $(_get "target" "recipient")"
-  _msg_info "             Target price:   $(_get "target" "price")"
-  _msg_info "             Measure unit:   $(_get "measure" "unit")"
-  _msg_info "             Auto confirm:   $(_get "auto" "confirm")"
-  _msg_info "          Cache directory:   $(_get "cache" "dir")"
+  _msg_info "            Purchase date:   ${purchase_date}"
+  _msg_info "  User Repository address:   ${ur_address}"
+  _msg_info "  User Repository version:   ${ur_version}"
+  _msg_info "               User level:   ${user_level}"
+  _msg_info "    Deployments directory:   ${deployments_dir}"
+  _msg_info "           Wallet address:   ${wallet_address}"
+  _msg_info "              Wallet name:   ${wallet_name}"
+  _msg_info "              Wallet path:   ${wallet_path}"
+  _msg_info "          Wallet password:   ${wallet_password}"
+  _msg_info "              Wallet seed:   ${wallet_seed}"
+  _msg_info "           Target network:   ${target_network}"
+  _msg_info "                  API key:   ${api_key}"
+  _msg_info "           Target package:   ${target_package}"
+  _msg_info "         Target publisher:   ${target_publisher}"
+  _msg_info "          Target revision:   ${target_revision}"
+  _msg_info "         Target recipient:   ${target_recipient}"
+  _msg_info "             Target price:   ${target_price}"
+  _msg_info "             Measure unit:   ${measure_unit}"
+  _msg_info "             Auto confirm:   ${auto_confirm}"
+  _msg_info "          Cache directory:   ${cache_dir}"
 }
 
 _globals
