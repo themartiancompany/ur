@@ -260,6 +260,7 @@ _packages_update() {
             "${_packages_update_call_opts[@]}" \
             "${_ur_address}" \
             "package" \
+            "${_publisher}" \
             "${_package}")"
         _msg=(
           "Found package '${_package_name}'."
