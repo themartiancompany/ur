@@ -223,7 +223,7 @@ _packages_update() {
         "${_db}")"
     _msg=(
       "Locally are listed"
-      "'${_publishers_local_total}'"
+      "'${_packages_local_total}'"
       "publishers."
     )
     _msg_info \
@@ -361,12 +361,9 @@ _ur_packages() {
     _gnupg_private="${16}" \
     _source_publisher="${17}" \
     _target_command="${18}" \
-    _ur_publishers_opts=() \
     _command_args=() \
     _cmd \
-    _args=() \
-    _msg=() \
-    _publishers=()
+    _msg=()
   shift \
     18
   _command_args+=(
