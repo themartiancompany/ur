@@ -180,7 +180,7 @@ _packages_update() {
   elif [[ "${_source_publisher}" == "" ]]; then
     _msg=(
       "Source publisher not selected,"
-      "showing all publishers' packages."
+      "updating packages for all publishers."
     )
     _msg_info \
       "${_msg[*]}"
