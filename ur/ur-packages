@@ -207,7 +207,48 @@ _package_publishers_get() {
 
 _packages_update() {
   local \
-    _publisher="${1}"
+    _ur_address="${1}" \
+    _ur_version="${2}" \
+    _cache_dir="${3}" \
+    _source_publisher="${4}" \
+    _publisher \
+    _publishers=() \
+    _ur_abi \
+    _ur_bytecode \
+    _ur_compiler_output \
+    _msg=()
+  _contract_artifacts_auto_detect \
+    "${_deployments_dir}" \
+    "${_target_network}" \
+    "UserRepository" \
+    "_ur" \
+    "${_ur_version}"
+  if [[ "${_source_publisher}" != "" ]]; then
+    _publishers+=(
+      "${_source_publisher}"
+    )
+  elif [[ "${_source_publisher}" == "" ]]; then
+    _msg=(
+      "Source publisher not selected,"
+      "showing all publishers' packages."
+    )
+    _msg_info \
+      "${_msg[*]}"
+    # TODO: select publishers per-repository
+    _publishers+=( $( \
+      ur-publishers \
+        list)
+    )
+  fi
+  for _publisher in "${_publishers[@]}"; do
+    _msg=(
+      "Getting packages for"
+      "publisher '${_publisher}'."
+    )
+    _msg_info \
+      "${_msg[*]}"
+    _db="${_cache_dir}/${_publisher}/packages.db"
+  done
 }
 
 _results_add() {
@@ -234,8 +275,10 @@ _results_add() {
 
 _packages_list() {
   local \
-    _cache_dir="${1}" \
-    _source_publisher="${2}" \
+    _ur_address="${1}" \
+    _ur_version="${2}" \
+    _cache_dir="${3}" \
+    _source_publisher="${4}" \
     _publisher \
     _publishers=() \
     _db \
@@ -269,6 +312,9 @@ _packages_list() {
       _msg_info \
         "${_msg[*]}"
       _packages_update \
+        "${_ur_address}" \
+        "${_ur_version}" \
+        "${_cache_dir}" \
         "${_publisher}"
     fi
     _packages_results_add \
@@ -310,27 +356,21 @@ _ur_packages() {
   _command_args+=(
     "$@"
   )
-  if [[ "${_source_publisher}" == "" ]]; then
-    _msg=(
-      "Source publisher not selected,"
-      "showing packages for all available."
-    )
-    _msg_info \
-      "${_msg[*]}"
-    # get all publishers
-    # _info_type="publishers"
-  fi
   if [[ "${target_command}" == "list" ]]; then
     _packages_list \
+      "${_ur_address}" \
+      "${_ur_version}" \
       "${_cache_dir}" \
       "${_source_publisher}"
       # "${_pp_address}" \
       # "${_pp_version}" \
-      # "${_ur_address}" \
-      # "${_up_address}" \
       # "${_target_package}"
   elif [[ "${target_command}" == "update" ]]; then
-    _packages_update
+    _packages_update \
+      "${_ur_address}" \
+      "${_ur_version}" \
+      "${_cache_dir}" \
+      "${_source_publisher}"
   fi
 }
 
