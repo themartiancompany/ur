@@ -263,6 +263,9 @@ _packages_update() {
         )
         _msg_info \
           "${_msg[*]}"
+        # TODO: doing this is the unsafest
+        # thing possible, this will stay as it
+        # is until tomorrow at max.
         printf \
           '%s\n' \
           "${_package_name}" >> \
