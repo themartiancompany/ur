@@ -180,7 +180,7 @@ _packages_update() {
   elif [[ "${_source_publisher}" == "" ]]; then
     _msg=(
       "Source publisher not selected,"
-      "updating packages for all publishers."
+      "updating packages list for all publishers."
     )
     _msg_info \
       "${_msg[*]}"
@@ -199,7 +199,7 @@ _packages_update() {
     "${_msg[*]}"
   for _publisher in "${_publishers[@]}"; do
     _msg=(
-      "Getting packages for"
+      "Getting packages list for"
       "publisher '${_publisher}'."
     )
     _msg_info \
