@@ -225,7 +225,7 @@ _packages_update() {
     _msg=(
       "Locally are listed"
       "'${_packages_local_total}'"
-      "publishers."
+      "packages."
     )
     _msg_info \
       "${_msg[*]}"
