@@ -1,0 +1,575 @@
+#!/usr/bin/env bash
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+_bin="$( \
+  dirname \
+    "$( \
+      command \
+        -v \
+	  "env")")"
+_lib="${_bin}/../lib"
+source \
+  "${_lib}/libcrash-bash/crash-bash"
+source \
+  "${_lib}/libevm/libevm"
+
+# shellcheck disable=SC2034
+_global_variables() {
+  call_date=""
+  ur_address=""
+  ur_version=""
+  up_address=""
+  up_version=""
+  pp_address=""
+  pp_version=""
+  deployments_dir=""
+  user_level=""
+  wallet_name=""
+  wallet_path=""
+  wallet_password=""
+  wallet_seed=""
+  wallet_address=""
+  target_network=""
+  api_key=""
+  cache_dir=""
+  gnupg_home=""
+  gnupg_private=""
+  source_publisher=""
+  target_package=""
+  target_revision=""
+  info_type=""
+  command_args=()
+  color=""
+  quiet=""
+}
+
+_requirements() {
+  _check_cmd \
+    'libevm-requirements' \
+    'libevm'
+  libevm-requirements
+  _check_cmd \
+    'evm-contract-call' \
+    'evm-contracts-tools'
+  _check_cmd \
+    'evm-contract-deployment-networks' \
+    'evm-contracts-tools'
+  _check_cmd \
+    'evm-wallet'
+}
+
+_conf_dir_auto_detect() {
+  local \
+    _dir
+  _dir="${HOME}/.config/ur/packages"
+  echo \
+    "${_dir}"
+}
+
+_cache_dir_auto_detect() {
+  local \
+    _dir
+  _dir="${HOME}/.cache/ur/packages"
+  echo \
+    "${_dir}"
+}
+
+_contract_call_opts_setup() {
+  local \
+    _abi="${1}" \
+    _bytecode="${2}" \
+    _compiler_output="${3}"
+  _contract_call_opts+=(
+    -n
+      "${_target_network}"
+    -N
+      "${_wallet_name}"
+    -k
+      "${_api_key_path}"
+    -A
+      "${_abi}"
+    -B
+      "${_bytecode}"
+    -C
+      "${_compiler_output}"
+  )
+}
+
+_publishers_call_opts_setup() {
+  local \
+    _contract_call_opts=()
+  _contract_call_opts_setup \
+    "${_pp_abi}" \
+    "${_pp_bytecode}" \
+    "${_pp_compiler_output}"
+  _publishers_call_opts+=(
+    "${_contract_call_opts[@]}"
+    -t
+      "static"
+  )
+}
+
+_work_dir_setup() {
+  local \
+    _msg=()
+  _tmp_dir="${_cache_dir}"
+  _msg=(
+    "setting up work directory"
+    "'${_tmp_dir}'"
+  )
+  _msg_info \
+    "${_msg[*]}"
+  mkdir \
+    -p \
+    "${_tmp_dir}/gnupg"
+  chmod \
+    -R \
+    700 \
+    "${_tmp_dir}"
+}
+
+_package_publishers_get() {
+  local \
+    _pp_address="${1}" \
+    _pp_version="${2}" \
+    _ur_address="${3}" \
+    _up_address="${4}" \
+    _package="${5}" \
+    _msg=() \
+    _pp_abi \
+    _pp_bytecode \
+    _pp_compiler_output \
+    _publisher \
+    _publishers=() \
+    _publishers_total
+  _pp_abi="$( \
+    _contract_abi_get \
+      "${_deployments_dir}" \
+      "${_target_network}" \
+      "PackagePublishers" \
+      "${_pp_version}")"
+  _pp_bytecode="$( \
+    _contract_bytecode_get \
+      "${_deployments_dir}" \
+      "${_target_network}" \
+      "PackagePublishers" \
+      "${_pp_version}")"
+  _pp_compiler_output="$( \
+    _contract_compiler_output_get \
+      "${_deployments_dir}" \
+      "${_target_network}" \
+      "PackagePublishers" \
+      "${_pp_version}")"
+  _publishers_call_opts_setup 
+  _publishers_total="$( \
+    evm-contract-call \
+      "${_publishers_call_opts[@]}" \
+      "${_pp_address}" \
+      "packagePublisherNo" \
+      "${_ur_address}" \
+      "${_up_address}" \
+      "${_package}")"
+  for _publisher \
+    in $(seq 1 \
+             "${_publishers_total}"); do
+    _publishers+=( "$( \
+       evm-contract-call \
+        "${_publishers_call_opts[@]}" \
+        "${_pp_address}" \
+        "packagePublisher" \
+        "${_ur_address}" \
+        "${_up_address}" \
+        "${_package}" \
+        "${_publisher}")"
+    )
+  done
+  if (( "${#_publishers[@]}" == 0 )); then
+    _msg=(
+      "No registered publishers"
+      "for package '${_package}'."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  else
+    _msg=(
+      "Publishers for '${_package}':"
+      "${_publishers[@]}."
+    )
+    _msg_info \
+      "${_msg[*]}"
+  fi
+  printf \
+    "%s\n" \
+    "${_publishers[@]}"
+}
+
+_ur_packages() {
+  local \
+    _ur_address="${1}" \
+    _ur_version="${2}" \
+    _up_address="${3}" \
+    _up_version="${4}" \
+    _pp_address="${5}" \
+    _pp_version="${6}" \
+    _deployments_dir="${7}" \
+    _wallet_name="${8}" \
+    _wallet_path="${9}" \
+    _wallet_password="${10}" \
+    _wallet_seed="${11}" \
+    _target_network="${12}" \
+    _api_key_path="${13}" \
+    _cache_dir="${14}" \
+    _gnupg_home="${15}" \
+    _gnupg_private="${16}" \
+    _source_publisher="${17}" \
+    _target_command="${18}" \
+    _ur_publishers_opts=() \
+    _command_args=() \
+    _cmd \
+    _args=() \
+    _msg=() \
+    _publishers=()
+  shift \
+    18
+  _command_args+=(
+    "$@"
+  )
+  if [[ "${_source_publisher}" == "" ]]; then
+    _msg=(
+      "Source publisher not selected,"
+      "showing packages for all available."
+    )
+    _msg_info \
+      "${_msg[*]}"
+    # get all publishers
+    # _info_type="publishers"
+  fi
+  if [[ "${target_command}" == "list" ]]; then
+    _packages_list \
+      "${_pp_address}" \
+      "${_pp_version}" \
+      "${_ur_address}" \
+      "${_up_address}" \
+      "${_target_package}"
+  elif [[ "${target_command}" == "update" ]]; then
+    _packages_update
+  fi
+}
+
+_set_overrides() {
+  if [[ -v override_quiet ]]; then
+    quiet="${override_quiet}"
+  elif [[ -z "${quiet}" ]]; then
+    quiet="y"
+  fi
+  if [[ -v override_color ]]; then
+    color="${override_color}"
+  elif [[ -z "${color}" ]]; then
+    color="n"
+  fi
+  _set_override \
+    "call" \
+    "date" \
+    "$(_get_date_human)"
+  _set_override \
+    "wallet" \
+    "name" \
+    "default"
+  _set_override \
+    "user" \
+    "level" \
+    "n"
+  _deployments_dir_auto_detect \
+    "ur" \
+    "${user_level}"
+  _network_auto_detect \
+    "UserRepository" \
+    "${deployments_dir}" \
+    "${user_level}"
+  _api_key_auto_detect \
+    "${target_network}"
+  _set_override \
+    "wallet" \
+    "path" \
+    "$(_wallet_path_get \
+         "evm-wallet" \
+         "${wallet_name}")"
+  _secret_auto_detect \
+    "seed" \
+    "seed" \
+    "evm-wallet" \
+    "${wallet_name}"
+  _secret_auto_detect \
+    "password" \
+    "plain" \
+    "evm-wallet" \
+    "${wallet_name}"
+  _set_override \
+    "wallet" \
+    "address" \
+    "$(evm-wallet \
+         get \
+           "${wallet_name}" \
+           "address")"
+  _set_override \
+    "cache" \
+    "dir" \
+    "$(_cache_dir_auto_detect)"
+  _set_override \
+    "gnupg" \
+    "home" \
+    "${cache_dir}/gnupg"
+  _set_override \
+    "gnupg" \
+    "private" \
+    "$(_conf_dir_auto_detect)/gnupg"
+  _contract_setup_auto_detect \
+    "ur" \
+    "UserRepository" \
+    "ur" \
+    "${target_network}" \
+    "${user_level}" \
+    "${deployments_dir}"
+  _contract_setup_auto_detect \
+    "ur" \
+    "UserRepositoryPublishers" \
+    "up" \
+    "${target_network}" \
+    "${user_level}" \
+    "${deployments_dir}"
+  _contract_setup_auto_detect \
+    "ur" \
+    "PackagePublishers" \
+    "pp" \
+    "${target_network}" \
+    "${user_level}" \
+    "${deployments_dir}"
+  _set_override \
+    "source" \
+    "publisher" \
+    ""
+  _set_override \
+    "target" \
+    "command" \
+    "list"
+}
+
+# Show help usage, with an exit status.
+# $1: exit status number.
+_usage() {
+  local \
+    _up \
+    _up_deployment \
+    _networks \
+    _usage_text
+  _ur="UserRepository"
+  _ur_deployment="${deployments_dir}/${_ur}"
+  _networks="$( \
+    evm-contract-deployment-networks \
+      -A \
+      "${_ur_deployment}")"
+  IFS='' \
+    read \
+      -r \
+      -d '' \
+      _usage_text << \
+        ENDUSAGETEXT || true
+Operations on User Repository's available packages.
+
+Usage:
+  $(_get "app" "name")
+    [options]
+    <command>
+
+  command:
+    list                   Lists all registered publishers'
+                           packages available on
+                           the User Repository.
+    update                 Updates the local list for
+                           available packages.
+
+  networks:
+$(_display_networks \
+     "${_networks[*]}")
+
+  options:
+     -A <ur_address>        Address of the 'User Repository'
+                            contract on the
+                            network.
+                            Default: ${ur_address}
+     -V <ur_version>        Version of the target 'User Repository'
+                            contract on the network.
+                            Default: ${ur_version}
+     -B <up_address>        Address of the 'User Repository
+                            Publishers' contract on the
+                            network.
+                            Default: ${up_address}
+     -C <pp_address>        Address of the 'Package
+                            Publishers' contract on the
+                            network.
+                            Default: ${pp_address}
+     -u                     Whether to retrieve publishers' contract
+                            address from user directory or custom
+                            deployment.
+                            Default: ${user_level}
+     -d <deployments_dir>   Contracts deployments directory.
+                            Default: ${deployments_dir}
+     -N <wallet_name>       Wallet name.
+                            Default: ${wallet_name}
+     -w <wallet_path>       Wallet path.
+                            Default: ${wallet_path}
+     -p <wallet_password>   Wallet password.
+                            Default: ${wallet_password}
+     -s <wallet_seed>       Wallet seed path.
+                            Default: ${wallet_seed}
+     -n <network>           EVM network name (${_networks[*]}).
+                            Default: ${target_network}
+     -k <api_key>           Etherscan-like service key.
+                            Default: ${api_key}
+     -C <cache_dir>         Work directory.
+                            Default: ${cache_dir}
+     -H <gnupg_home>        GNUPG home directory.
+                            Default: ${gnupg_home}
+     -G <gnupg_private>     GNUPG private home directory.
+                            Default: ${gnupg_private}
+     -P <publisher>         Target package publisher.
+                            Default: ${source_publisher}
+
+     -h                     This message.
+     -c                     Enable color output
+     -v                     Enable verbose output
+ENDUSAGETEXT
+  _printf \
+    '%s\n' \
+    "${_usage_text}"
+  exit \
+    "${1}"
+}
+
+_display_flags() {
+  local \
+    _flag \
+    _flags=(
+      "${1}"
+    )
+  for _flag \
+    in "${_flags[@]}"; do
+  _msg_info \
+    "                             ${_flag}"
+  done
+}
+
+# Shows configuration options.
+_show_config() {
+  _msg_info "${app_name} configuration"
+  _msg_info "                Call date:   ${call_date}"
+  _msg_info "       Repository address:   ${ur_address}"
+  _msg_info "       Repository version:   ${ur_version}"
+  _msg_info "       Publishers address:   ${up_address}"
+  _msg_info "        Packagers address:   ${pp_address}"
+  _msg_info "               User level:   ${user_level}"
+  _msg_info "    Deployments directory:   ${deployments_dir}"
+  _msg_info "           Wallet address:   ${wallet_address}"
+  _msg_info "              Wallet name:   ${wallet_name}"
+  _msg_info "              Wallet path:   ${wallet_path}"
+  _msg_info "          Wallet password:   ${wallet_password}"
+  _msg_info "              Wallet seed:   ${wallet_seed}"
+  _msg_info "           Target network:   ${target_network}"
+  _msg_info "                  API key:   ${api_key}"
+  _msg_info "          Cache directory:   ${cache_dir}"
+  _msg_info "          GNUPG directory:   ${gnupg_home}"
+  _msg_info "  GNUPG private directory:   ${gnupg_private}"
+  _msg_info "         Source publisher:   ${source_publisher}"
+  _msg_info "           Target command:   ${target_command}"
+}
+
+_globals
+_global_variables
+_requirements
+# shellcheck disable=SC2034
+while \
+  getopts \
+    'A:V:B:C:ud:N:w:p:s:n:k:C:H:G:P:cvh?' \
+    arg; do
+  case \
+    "${arg}" in
+    A) override_up_address="${OPTARG}" ;;
+    V) override_up_version="${OPTARG}" ;;
+    u) override_user_level="y" ;;
+    d) override_deployments_dir="${OPTARG}" ;;
+    N) override_wallet_name="${OPTARG}" ;;
+    w) override_wallet_path="${OPTARG}" ;;
+    p) override_wallet_password="${OPTARG}" ;;
+    s) override_wallet_seed="${OPTARG}" ;;
+    n) override_target_network="${OPTARG}" ;;
+    k) override_api_key="${OPTARG}" ;;
+    C) override_cache_dir="${OPTARG}" ;;
+    H) override_gnupg_home="${OPTARG}" ;;
+    G) override_gnupg_private="${OPTARG}" ;;
+    P) override_source_publisher="${OPTARG}" ;;
+    c) override_color="y" ;;
+    v) override_quiet="n" ;;
+    h|?) _set_overrides && \
+         _usage \
+           0 ;;
+    *)
+    _msg_error \
+      "Invalid argument '${arg}'" \
+      0
+    _usage \
+      1
+    ;;
+  esac
+done
+shift \
+  $(( \
+    OPTIND - 1 \
+  ))
+if (( $# < 1 )); then
+  _msg_error \
+    "no command specified" \
+    0
+  _set_overrides
+  _usage \
+    1
+fi
+if (( 0 < $# )); then
+  _set \
+    "target" \
+    "command" \
+    "${1}"
+fi
+shift \
+  1 || \
+  true
+command_args+=(
+  "$@"
+)
+_set_overrides
+_show_config
+app_opts=(
+  "${ur_address}"
+  "${ur_version}"
+  "${up_address}"
+  "${up_version}"
+  "${pp_address}"
+  "${pp_version}"
+  "${deployments_dir}"
+  "${wallet_name}"
+  "${wallet_path}"
+  "${wallet_password}"
+  "${wallet_seed}"
+  "${target_network}"
+  "${api_key}"
+  "${cache_dir}"
+  "${gnupg_home}"
+  "${gnupg_private}"
+  "${source_publisher}"
+  "${target_command}"
+)
+_ur_packages \
+  "${app_opts[@]}"
+
+# vim:set sw=2 sts=-1 et:
