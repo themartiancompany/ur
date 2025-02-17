@@ -134,6 +134,10 @@ _packages_local_get() {
     _db="${1}" \
     _packages
   if [[ ! -e "${_db}" ]]; then
+    mkdir \
+      -p \
+      "$(dirname \
+           "${_db}")"
     _packages="0"
   elif [[ -e "${_db}" ]]; then
     _packages="$( \
