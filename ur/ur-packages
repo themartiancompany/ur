@@ -456,6 +456,13 @@ _ur_packages() {
       "${_ur_version}" \
       "${_cache_dir}" \
       "${_source_publisher}"
+  else
+    _msg=(
+      "Unknown command '${_target_command}'."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
   fi
 }
 
