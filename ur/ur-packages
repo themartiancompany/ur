@@ -129,82 +129,6 @@ _work_dir_setup() {
     "${_tmp_dir}"
 }
 
-_package_publishers_get() {
-  local \
-    _pp_address="${1}" \
-    _pp_version="${2}" \
-    _ur_address="${3}" \
-    _up_address="${4}" \
-    _package="${5}" \
-    _msg=() \
-    _pp_abi \
-    _pp_bytecode \
-    _pp_compiler_output \
-    _publisher \
-    _publishers=() \
-    _publishers_total
-  _pp_abi="$( \
-    _contract_abi_get \
-      "${_deployments_dir}" \
-      "${_target_network}" \
-      "PackagePublishers" \
-      "${_pp_version}")"
-  _pp_bytecode="$( \
-    _contract_bytecode_get \
-      "${_deployments_dir}" \
-      "${_target_network}" \
-      "PackagePublishers" \
-      "${_pp_version}")"
-  _pp_compiler_output="$( \
-    _contract_compiler_output_get \
-      "${_deployments_dir}" \
-      "${_target_network}" \
-      "PackagePublishers" \
-      "${_pp_version}")"
-  _publishers_call_opts_setup 
-  _publishers_total="$( \
-    evm-contract-call \
-      "${_publishers_call_opts[@]}" \
-      "${_pp_address}" \
-      "packagePublisherNo" \
-      "${_ur_address}" \
-      "${_up_address}" \
-      "${_package}")"
-  for _publisher \
-    in $(seq 1 \
-             "${_publishers_total}"); do
-    _publishers+=( "$( \
-       evm-contract-call \
-        "${_publishers_call_opts[@]}" \
-        "${_pp_address}" \
-        "packagePublisher" \
-        "${_ur_address}" \
-        "${_up_address}" \
-        "${_package}" \
-        "${_publisher}")"
-    )
-  done
-  if (( "${#_publishers[@]}" == 0 )); then
-    _msg=(
-      "No registered publishers"
-      "for package '${_package}'."
-    )
-    _msg_error \
-      "${_msg[*]}" \
-      1
-  else
-    _msg=(
-      "Publishers for '${_package}':"
-      "${_publishers[@]}."
-    )
-    _msg_info \
-      "${_msg[*]}"
-  fi
-  printf \
-    "%s\n" \
-    "${_publishers[@]}"
-}
-
 _packages_local_get() {
   local \
     _db="${1}" \
@@ -447,9 +371,6 @@ _ur_packages() {
       "${_ur_version}" \
       "${_cache_dir}" \
       "${_source_publisher}"
-      # "${_pp_address}" \
-      # "${_pp_version}" \
-      # "${_target_package}"
   elif [[ "${target_command}" == "update" ]]; then
     _packages_update \
       "${_ur_address}" \
