@@ -336,6 +336,17 @@ _publishers_list() {
       "${_target_address}"
   else
     _publishers_db="${_work_dir}/publishers.db"
+    if [[ ! -e "${_publishers_db}" ]]; then
+      _publishers_update \
+        "${_target_network}" \
+        "${_up_address}" \
+        "${_up_abi}" \
+        "${_up_bytecode}" \
+        "${_up_compiler_output}" \
+        "${_work_dir}" \
+        "${_gnupg_home}" \
+        "${_keys_update}"
+    fi
     cat \
       "${_publishers_db}"
   fi
