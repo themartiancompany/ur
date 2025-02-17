@@ -161,6 +161,7 @@ _packages_update() {
     _msg=() \
     _package \
     _package_name \
+    _update_no \
     _packages_remote_total \
     _packages_local_total \
     _packages_new \
@@ -233,8 +234,9 @@ _packages_update() {
      _packages_local_total))"
     if (( 0 < "${_packages_new}" )); then
       _msg=(
-        "Getting info for new"
-        "'${_packages_new}' packages."
+        "Getting info for"
+        "'${_packages_new}'"
+        "new packages."
       )
       _msg_info \
         "${_msg[*]}"
@@ -242,13 +244,14 @@ _packages_update() {
         _packages_local_total))"
       _bound_upper="$(( \
         _packages_remote_total - 1))"
+      _update_no="1"
       for _package \
         in $(seq "${_bound_lower}" \
                  "${_bound_upper}"); do
         _msg=(
           "Retrieving new package"
-          "name '${_package}'"
-          "out of '${_bound_upper}'."
+          "name '${_update_no}'"
+          "out of '${_packages_new}'."
         )
         _msg_info \
           "${_msg[*]}"
@@ -270,6 +273,8 @@ _packages_update() {
           '%s\n' \
           "${_package_name}" >> \
           "${_db}"
+        _update_no="$(( \
+          _update_no + 1))"
       done
     fi
   done
