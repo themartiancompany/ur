@@ -96,14 +96,14 @@ _contract_call_opts_setup() {
   )
 }
 
-_publishers_call_opts_setup() {
+_packages_update_call_opts_setup() {
   local \
     _contract_call_opts=()
   _contract_call_opts_setup \
-    "${_pp_abi}" \
-    "${_pp_bytecode}" \
-    "${_pp_compiler_output}"
-  _publishers_call_opts+=(
+    "${_ur_abi}" \
+    "${_ur_bytecode}" \
+    "${_ur_compiler_output}"
+  _packages_update_call_opts+=(
     "${_contract_call_opts[@]}"
     -t
       "static"
@@ -205,6 +205,24 @@ _package_publishers_get() {
     "${_publishers[@]}"
 }
 
+_packages_local_get() {
+  local \
+    _db="${1}" \
+    _packages
+  if [[ ! -e "${_db}" ]]; then
+    _packages="0"
+  elif [[ -e "${_db}" ]]; then
+    _packages="$( \
+      wc \
+        -l \
+        "${_db}" | \
+        awk \
+          '{print $1}')" 
+  fi
+  echo \
+    "${_packages}"
+}
+
 _packages_update() {
   local \
     _ur_address="${1}" \
@@ -216,13 +234,21 @@ _packages_update() {
     _ur_abi \
     _ur_bytecode \
     _ur_compiler_output \
-    _msg=()
+    _msg=() \
+    _package \
+    _package_name \
+    _packages_remote_total \
+    _packages_local_total \
+    _packages_new \
+    _bound_lower \
+    _bound_upper
   _contract_artifacts_auto_detect \
     "${_deployments_dir}" \
     "${_target_network}" \
     "UserRepository" \
     "_ur" \
     "${_ur_version}"
+  _packages_update_call_opts_setup 
   if [[ "${_source_publisher}" != "" ]]; then
     _publishers+=(
       "${_source_publisher}"
@@ -247,7 +273,66 @@ _packages_update() {
     )
     _msg_info \
       "${_msg[*]}"
+    _packages_remote_total="$( \
+      evm-contract-call \
+        "${_packages_update_call_opts[@]}" \
+        "${_ur_address}" \
+        "packageNo" \
+        "${_publisher}")"
+    _msg=(
+      "Publisher '${_publisher}' has published"
+      "a total of '${_packages_remote_total}'"
+      "packages."
+    )
+    _msg_info \
+      "${_msg[*]}"
     _db="${_cache_dir}/${_publisher}/packages.db"
+    _packages_local_total="$( \
+      _packages_local_get \
+        "${_db}")"
+    _msg=(
+      "Locally are listed"
+      "'${_publishers_local_total}'"
+      "publishers."
+    )
+    _msg_info \
+      "${_msg[*]}"
+    _packages_new="$(( \
+     _packages_remote_total - \
+     _packages_local_total))"
+    if (( 0 < "${_packages_new}" )); then
+      _msg=(
+        "Getting info for new"
+        "'${_packages_new}' packages."
+      )
+      _msg_info \
+        "${_msg[*]}"
+      _bound_lower="$(( \
+        _packages_local_total))"
+      _bound_upper="$(( \
+        _packages_remote_total - 1))"
+      for _package \
+        in $(seq "${_bound_lower}" \
+                 "${_bound_upper}"); do
+        _msg=(
+          "Retrieving new package"
+          "name '${_package}'"
+          "out of '${_bound_upper}'."
+        )
+        _msg_info \
+          "${_msg[*]}"
+        _package_name="$( \
+          evm-contract-call \
+            "${_packages_update_call_opts[@]}" \
+            "${_ur_address}" \
+            "package" \
+            "${_package}")"
+        printf \
+          '%s\n' \
+          "${_package_name}" >> \
+          "${_db}"
+      done
+    fi
   done
 }
 
