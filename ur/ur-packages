@@ -190,6 +190,13 @@ _packages_update() {
         list)
     )
   fi
+  _msg=(
+    "Found '${#_publishers[@]}'"
+    "publishers in the local"
+    "database."
+  )
+  _msg_info \
+    "${_msg[*]}"
   for _publisher in "${_publishers[@]}"; do
     _msg=(
       "Getting packages for"
