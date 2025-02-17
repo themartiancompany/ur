@@ -258,6 +258,11 @@ _packages_update() {
             "${_ur_address}" \
             "package" \
             "${_package}")"
+        _msg=(
+          "Found package '${_package_name}'."
+        )
+        _msg_info \
+          "${_msg[*]}"
         printf \
           '%s\n' \
           "${_package_name}" >> \
