@@ -205,6 +205,47 @@ _package_publishers_get() {
     "${_publishers[@]}"
 }
 
+_results_add() {
+  local \
+    _db="${1}"
+}
+
+_packages_list() {
+  local \
+    _cache_dir="${1}" \
+    _source_publisher="${2}" \
+    _publisher \
+    _publishers=() \
+    _db \
+    _packages=()
+  if [[ "${_source_publisher}" != "" ]]; then
+    _publishers+=(
+      "${_source_publisher}"
+    )
+  elif [[ "${_source_publisher}" == "" ]]; then
+    _msg=(
+      "Source publisher not selected,"
+      "showing all publishers' packages."
+    )
+    _msg_info \
+      "${_msg[*]}"
+    # get all publishers
+    # _info_type="publishers"
+  fi
+  for _publisher in "${_publishers[@]}"; do
+    _db="${_cache_dir}/${_publisher}/packages.db"
+    if [[ ! -e "${_db}" ]]; then
+      _packages_update \
+        "${_publisher}"
+    fi
+    _packages_results_add \
+      "${_db}"
+  done
+  printf \
+    "%s\n" \
+    "${_packages[@]}"
+}
+
 _ur_packages() {
   local \
     _ur_address="${1}" \
@@ -248,11 +289,13 @@ _ur_packages() {
   fi
   if [[ "${target_command}" == "list" ]]; then
     _packages_list \
-      "${_pp_address}" \
-      "${_pp_version}" \
-      "${_ur_address}" \
-      "${_up_address}" \
-      "${_target_package}"
+      "${_cache_dir}" \
+      "${_source_publisher}"
+      # "${_pp_address}" \
+      # "${_pp_version}" \
+      # "${_ur_address}" \
+      # "${_up_address}" \
+      # "${_target_package}"
   elif [[ "${target_command}" == "update" ]]; then
     _packages_update
   fi
