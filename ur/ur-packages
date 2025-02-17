@@ -208,6 +208,23 @@ _package_publishers_get() {
 _results_add() {
   local \
     _db="${1}"
+  # TODO: results is a set, not
+  # a list. Also theres to add
+  # a check for publishers who
+  # have published packages
+  # containing a space into their
+  # name, exclude those publishers
+  # from official lists and force
+  # them to pay again the registration
+  # fee as it's obvious they shouldnt use
+  # spaces into package names.
+  # Or simply add a check to a new version
+  # of the contract so they cant directly
+  # add spaces. Probably both.
+  _packages+=( $( \
+    cat \
+      "${_db}")
+  )
 }
 
 _packages_list() {
@@ -229,12 +246,22 @@ _packages_list() {
     )
     _msg_info \
       "${_msg[*]}"
-    # get all publishers
-    # _info_type="publishers"
+    _publishers+=( $( \
+      ur-publishers \
+        list)
+    )
   fi
   for _publisher in "${_publishers[@]}"; do
     _db="${_cache_dir}/${_publisher}/packages.db"
     if [[ ! -e "${_db}" ]]; then
+      _msg=(
+        "Found no database file for"
+        "publisher '${_publisher}',"
+        "updating publisher's package"
+        "list."
+      )
+      _msg_info \
+        "${_msg[*]}"
       _packages_update \
         "${_publisher}"
     fi
