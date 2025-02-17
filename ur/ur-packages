@@ -205,6 +205,11 @@ _package_publishers_get() {
     "${_publishers[@]}"
 }
 
+_packages_update() {
+  local \
+    _publisher="${1}"
+}
+
 _results_add() {
   local \
     _db="${1}"
@@ -246,6 +251,7 @@ _packages_list() {
     )
     _msg_info \
       "${_msg[*]}"
+    # TODO: select publishers per-repository
     _publishers+=( $( \
       ur-publishers \
         list)

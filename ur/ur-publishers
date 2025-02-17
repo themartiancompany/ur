@@ -708,24 +708,12 @@ _ur_publishers() {
      get \
        "${_wallet_name}" \
        "address")"
-  _up_abi="$( \
-    _contract_abi_get \
-      "${_deployments_dir}" \
-      "${_target_network}" \
-      "UserRepositoryPublishers" \
-      "${_up_version}")"
-  _up_bytecode="$( \
-    _contract_bytecode_get \
-      "${_deployments_dir}" \
-      "${_target_network}" \
-      "UserRepositoryPublishers" \
-      "${_up_version}")"
-  _up_compiler_output="$( \
-    _contract_compiler_output_get \
-      "${_deployments_dir}" \
-      "${_target_network}" \
-      "UserRepositoryPublishers" \
-      "${_up_version}")"
+  _contract_artifacts_auto_detect \
+    "${_deployments_dir}" \
+    "${_target_network}" \
+    "UserRepositoryPublishers" \
+    "_up" \
+    "${_up_version}"
   if [[ "${_target_command}" == "update" ]]; then
     _publishers_update \
       "${_target_network}" \
