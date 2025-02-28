@@ -4,7 +4,7 @@ Decentralized, distributed, permissionless, uncensorable, undeletable,
 unstoppable, User Repository and Application Store.
 
 The Ur is an integral part of the OS-like software collection known
-as Life, and its main extension, DogeOS and part of the Human
+as Life, and its main extension, DogeOS, and part of the Human
 Instrumentality Project (HIP).
 
 Formally speaking, the Ur is the set of programs and smart contracts
