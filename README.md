@@ -11,10 +11,12 @@ Instrumentality Project (HIP).
 
 Formally speaking, the Ur is the set of programs and smart contracts
 you find in this software repository, together with their network
-deployments, whose addresses can be found in the `contracts/deployments`
-directory.
+deployments, whose addresses are found in the `contracts/deployments`
+directory, together with the universal build recipes for the programs
+published on it, which can seamlessly build on the largest array
+of operating system platforms.
 
-Many of the Ur desirable properties derive it being a program
+Many of the Ur desirable properties derive from it being a program
 on permissionless cryptocurrency
 [EVM-compatible](
   https://ethereum.org/en/developers/docs/evm/)
@@ -34,7 +36,7 @@ and refer to many concepts, including:
 
 Many more meanings, not all of which can be easily expressed
 in public in front of a young audience, are omitted for the sake
-of decency. It is still opinion of Ur developers it's wise to tell
+of decency. It is still opinion of Ur developers it is wise to tell
 you in advance, to avoid situations like the one Linus Torvalds has
 created with the Git software.
 
@@ -42,18 +44,18 @@ In particular the Ur deprecates the
 [Aur](
   https://aur.archlinux.org),
 the Arch Linux User Repository, a theoretically permissionless
-for the Arch Linux distribution plagued instead by unresolvable
-censorship issues deriving from its inherent centralized design
-and which the author of the Ur have been authors and contributors
+user repository for the Arch Linux distribution plagued instead
+by unsolvable censorship issues deriving from its inherent centralized
+design which the author of the Ur has been a significant contributor
 for more than a decade.
 
 The inception of the Ur has been long and troubled and many times
 the repository and the softwares at the same time it contains
-and it is part of have risked of never see the light.
+and it is part of have risked to never see the light.
 
 Before being announced to the public, the Ur has been in the works
 for at least three years and conceptualized way earlier, well before
-its main author had learned how to handle the technologies needed to
+its author had learned how to handle the technologies needed to
 write it.
 
 ###  How to install
