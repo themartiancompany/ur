@@ -28,7 +28,7 @@ and refer to many concepts, including:
 - **U**niversal **R**ecipe,
 - the Sumerian city state,
 - the adjective **your**,
-- the statement **you're**.
+- the statements **you're** and **you are**.
 
 Many more meanings, not all of which can be easily expressed
 in public in front of a young audience, are omitted for the sake
@@ -74,6 +74,10 @@ That can be built using
 and depending on the OS platform even using the standard
 [makepkg](
   https://man.archlinux.org/man/makepkg.8.en).
+
+Missing dependencies will be reported to user at runtime
+so if you're looking for a complete list we strongly
+suggest consulting the universal build recipe.
 
 ### License
 
