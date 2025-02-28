@@ -3,6 +3,8 @@
 Decentralized, distributed, permissionless, uncensorable, undeletable,
 unstoppable, User Repository and Application Store.
 
+### Overview
+
 The Ur is an integral part of the OS-like software collection known
 as Life, and its main extension, DogeOS, and part of the Human
 Instrumentality Project (HIP).
@@ -35,6 +37,24 @@ in public in front of a young audience, are omitted for the sake
 of decency. It is still opinion of Ur developers it's wise to tell
 you in advance, to avoid situations like the one Linus Torvalds has
 created with the Git software.
+
+In particular the Ur deprecates the
+[Aur](
+  https://aur.archlinux.org),
+the Arch Linux User Repository, a theoretically permissionless
+for the Arch Linux distribution plagued instead by unresolvable
+censorship issues deriving from its inherent centralized design
+and which the author of the Ur have been authors and contributors
+for more than a decade.
+
+The inception of the Ur has been long and troubled and many times
+the repository and the softwares at the same time it contains
+and it is part of have risked of never see the light.
+
+Before being announced to the public, the Ur has been in the works
+for at least three years and conceptualized way earlier, well before
+its main author had learned how to handle the technologies needed to
+write it.
 
 ###  How to install
 
