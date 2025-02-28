@@ -1,13 +1,13 @@
 # Ur
 
 Decentralized, distributed, permissionless, uncensorable, undeletable,
-unstoppable, user repository and application store.
+unstoppable, User Repository and Application Store.
 
 The Ur is an integral part of the OS-like software collection known
 as Life, and its main extension, DogeOS and part of the Human
 Instrumentality Project (HIP).
 
-Formally speaking, the Ur the set of programs and smart contracts
+Formally speaking, the Ur is the set of programs and smart contracts
 you find in this software repository, together with their network
 deployments, whose addresses can be found in the `contracts/deployments`
 directory.
@@ -29,6 +29,12 @@ and refer to many concepts, including:
 - the Sumerian city state,
 - the adjective **your**,
 - the statement **you're**.
+
+Many more meanings, not all of which can be easily expressed
+in public in front of a young audience, are omitted for the sake
+of decency. It is still opinion of Ur developers it's wise to tell
+you in advance, to avoid situations like the one Linus Torvalds has
+created with the Git software.
 
 ###  How to install
 
