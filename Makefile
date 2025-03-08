@@ -25,6 +25,7 @@ SOLIDITY_COMPILER_BACKEND ?= solc
 DOC_DIR=$(DESTDIR)$(PREFIX)/share/doc/ur
 BIN_DIR=$(DESTDIR)$(PREFIX)/bin
 LIB_DIR=$(DESTDIR)$(PREFIX)/lib/$(_PROJECT)
+MAN_DIR?=$(DESTDIR)$(PREFIX)/share/man
 BUILD_DIR=build
 
 DOC_FILES=\
@@ -58,13 +59,16 @@ _INSTALL_CONTRACTS_TARGETS_ALL:=\
   install-contracts-deployments-solc \
   install-contracts-deployments-config \
   install-contracts-sources
-_INSTALL_TARGETS:=\
+_INSTALL_DOC_TARGETS:=\
   install-doc \
+  install-man
+_INSTALL_TARGETS:=\
+  $(_INSTALL_DOC_TARGETS) \
   $(_INSTALL_CONTRACTS_TARGETS) \
   install-scripts
 _INSTALL_TARGETS_ALL:=\
   install \
-  install-doc \
+  $(_INSTALL_DOC_TARGETS) \
   $(_INSTALL_CONTRACTS_TARGETS_ALL) \
   install-scripts
 _PHONY_TARGETS:=\
@@ -166,6 +170,25 @@ install-doc:
 	$(_INSTALL_FILE) \
 	  $(DOC_FILES) \
 	  -t $(DOC_DIR)
+
+install-man:
+
+	install \
+	  -vdm755 \
+	  "$(MAN_DIR)/man1"
+	rst2man \
+	  "man/$(_PROJECT).1.rst" \
+	  "$(MAN_DIR)/man1/$(_PROJECT).1"
+	rst2man \
+	  "man/$(_PROJECT)-package-info.1.rst" \
+	  "$(MAN_DIR)/man1/$(_PROJECT)-package-info.1"
+	rst2man \
+	  "man/$(_PROJECT)-publishers.1.rst" \
+	  "$(MAN_DIR)/man1/$(_PROJECT)-publishers.1"
+	rst2man \
+	  "man/$(_PROJECT)-purchase.1.rst" \
+	  "$(MAN_DIR)/man1/$(_PROJECT)-purchase.1"
+
 
 install-scripts:
 
