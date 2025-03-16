@@ -175,6 +175,7 @@ _package_name_check() {
     _pkg_name="${1}" \ 
     _extra_chars \
     _msg=()
+  _skip_package="false"
   _extra_chars="$( \
     echo \
       "${_pkg_name}" | \
@@ -187,10 +188,11 @@ _package_name_check() {
       "'${_extra_chars}'. Only allowed"
       "non alfa-numeric ascii characters are"
       "'@', '.', '_', '+', '-'."
+      "Skipping package."
     )
-    _msg_error \
-      "${_msg[*]}" \
-      1
+    _msg_warning \
+      "${_msg[*]}"
+    _skip_package="true"
   fi
 }
 
@@ -213,7 +215,8 @@ _packages_update() {
     _packages_local_total \
     _packages_new \
     _bound_lower \
-    _bound_upper
+    _bound_upper \
+    _skip_package
   _contract_artifacts_auto_detect \
     "${_deployments_dir}" \
     "${_target_network}" \
@@ -315,10 +318,12 @@ _packages_update() {
         _msg_info \
           "${_msg[*]}"
         _package_name_check \
-        printf \
-          '%s\n' \
-          "${_package_name}" >> \
-          "${_db}"
+        if [[ "${_skip_package}" == "false" ]]; then
+          printf \
+            '%s\n' \
+            "${_package_name}" >> \
+            "${_db}"
+        fi
         _update_no="$(( \
           _update_no + 1))"
       done
