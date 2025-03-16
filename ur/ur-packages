@@ -323,6 +323,13 @@ _packages_update() {
             '%s\n' \
             "${_package_name}" >> \
             "${_db}"
+        elif [[ "${_skip_package}" == "true" ]]; then
+          # I think it makes sense for now to have
+          # a 1-to-1 line-to-package correspondence.
+          printf \
+            '\n' \
+            "${_package_name}" >> \
+            "${_db}"
         fi
         _update_no="$(( \
           _update_no + 1))"
