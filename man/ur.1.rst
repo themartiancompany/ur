@@ -44,13 +44,33 @@ the decentralized, distributed, uncensorable, undeletable,
 permissionless user repository and application store
 of Life and DogeOS.
 
+Publishing
+===========
+
+Applications can be permissionless published on the
+User Repository using the reference *pub* [1]
+publishing tool.
+
+Check out pub manual to learn how to publish
+applications.
+
+While not strictly required, in order to have
+their applications globally shown to users
+of the ur applications, developers must
+register to the repository using the
+*ur-publishers* program.
+
+Registration is permissionless, still a small
+anti-spam enrolling fee is active to avoid
+package name squatting and common spam.
+
 Networks
 ==========
 
 Currently available networks are
 Gnosis and DogeChain, respectively
-for purchasing applications with
-Dollars and Dogecoins.
+for purchasing and selling applications
+with Dollars and Dogecoins.
 
 Options
 =========

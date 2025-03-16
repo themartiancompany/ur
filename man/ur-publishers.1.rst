@@ -72,8 +72,8 @@ Networks
 
 Currently available networks are
 Gnosis and DogeChain, respectively
-for purchasing applications with
-Dollars and Dogecoins.
+for purchasing and selling applications
+with Dollars and Dogecoins.
 
 Enrolling fees
 ================

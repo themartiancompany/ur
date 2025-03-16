@@ -122,6 +122,17 @@ Missing dependencies will be reported to user at runtime
 so if you're looking for a complete list we strongly
 suggest consulting the universal build recipe.
 
+# Documentation
+
+Manual entries for the programs making up the Ur
+can be consulted using the `man` utility and are
+automatically installed with the program.
+
+```bash
+man \
+  ur
+```
+
 ### License
 
 The Ur is developed by Pellegrino Prevete and released under the
