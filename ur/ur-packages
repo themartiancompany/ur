@@ -319,6 +319,7 @@ _packages_update() {
         _msg_info \
           "${_msg[*]}"
         _package_name_check \
+          "${_package_name}"
         if [[ "${_skip_package}" == "false" ]]; then
           printf \
             '%s\n' \
@@ -339,7 +340,7 @@ _packages_update() {
   done
 }
 
-_results_add() {
+_packages_results_add() {
   local \
     _db="${1}"
   # TODO: results is a set, not
@@ -357,7 +358,9 @@ _results_add() {
   # add spaces. Probably both.
   _packages+=( $( \
     cat \
-      "${_db}")
+      "${_db}") | \
+      sort \
+        -V
   )
 }
 
