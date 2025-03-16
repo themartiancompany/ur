@@ -44,6 +44,36 @@ the decentralized, distributed, uncensorable, undeletable,
 permissionless user repository and application store
 of Life and DogeOS.
 
+Networks
+==========
+
+Currently available networks are
+Gnosis and DogeChain, respectively
+for purchasing applications with
+Dollars and Dogecoins.
+
+Options
+=========
+
+-S package_origin      Package origin, it can be
+                       'ur' and 'fur'.
+-P package_publisher   Package publisher.
+-r target_revision     Package target revision.
+-w work_dir            Work directory.
+-b y/n                 Whether to run the program
+                       after installed.
+-d y/n                 Whether to skip dependencies
+                       check when installing.
+
+-h                     Displays help message.
+-c                     Enable color output
+-v                     Enable verbose output
+
+Bugs
+====
+
+https://github.com/themartiancompany/ur/-/issues
+
 Copyright
 =========
 
@@ -52,10 +82,11 @@ Copyright Pellegrino Prevete. AGPL-3.0.
 See also
 ========
 
-* ur -h
 * ur-package-info
+* ur-packages
 * ur-publishers
 * ur-purchase
 * pub
+* aspe
 
 .. include:: variables.rst

@@ -34,7 +34,7 @@ User Repository publishers management command
 Synopsis
 ========
 
-ur-publishers *[options]* *package*
+ur-publishers *[options]* *command* *[args]*
 
 Description
 ===========
@@ -43,6 +43,95 @@ Description
 users can update and retrieve the list of the
 user repository publishers and register themselves
 as publishers.
+
+Commands
+===========
+
+* list
+
+    Lists all the registered publishers
+    on the User Repository.
+
+* register              
+    *target_address*
+
+    Register a new publisher on the User Repository.
+    An anti-spam fee is currently active on all
+    User Repository deployments to avoid package name
+    squatting and spamming the publishers list.
+    See the 'Enrolling fees' section below for
+    further informations.
+
+* update
+
+    Updates the list of registered publishers
+    on the User Repository.
+
+Networks
+==========
+
+Currently available networks are
+Gnosis and DogeChain, respectively
+for purchasing applications with
+Dollars and Dogecoins.
+
+Enrolling fees
+================
+
+Current enrolling one-time anti-spam fees
+for User Repository publishers are:
+
+* 10 Dollars on the Gnosis Network.
+* 10 Dogecoins on DogeChain.
+
+Fees are sent to Ur authors to account
+for the User Repository development costs.
+
+Publishing applications on the User Repository 
+does not require publishers to sign up,
+still unregistered publishers don't have their
+applications indexed and searchable through the
+*ur-packages* command and for users to install
+them they have to know the unregistered publisher's
+addresses in advance and manually input it
+at install/run time using the '-P' option.
+
+
+Options
+========
+
+-A up_address          Address of the 'User Repository
+                       Publishers' contract on the
+                       network.
+-V up_version          Version of the target 'User Repository
+                       Publishers' contract.
+-u                     Whether to retrieve publishers' contract
+                       address from user directory or custom
+                       deployment.
+-d deployments_dir     Contracts deployments directory.
+-N wallet_name         Wallet name.
+-w wallet_path         Wallet path.
+-p wallet_password     Wallet password.
+-s wallet_seed         Wallet seed path.
+-n network             EVM network name (${_networks[*]}).
+-k api_key             Etherscan-like service key.
+-C cache_dir           Work directory.
+-H gnupg_home          GNUPG home directory.
+-G gnupg_private       GNUPG private home directory.
+-y y/n                 Whether to update publishers' keys.
+-P y/n                 Whether to publish key.
+-U user_name           Publisher's key username.
+-f key_fingerprint     Publisher's key fingerprint.
+
+-h                     Displays help message.
+-c                     Enable color output
+-v                     Enable verbose output
+
+Bugs
+====
+
+https://github.com/themartiancompany/ur/-/issues
+
 
 Copyright
 =========

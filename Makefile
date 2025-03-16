@@ -183,6 +183,9 @@ install-man:
 	  "man/$(_PROJECT)-package-info.1.rst" \
 	  "$(MAN_DIR)/man1/$(_PROJECT)-package-info.1"
 	rst2man \
+	  "man/$(_PROJECT)-purchase.1.rst" \
+	  "$(MAN_DIR)/man1/$(_PROJECT)-packages.1"
+	rst2man \
 	  "man/$(_PROJECT)-publishers.1.rst" \
 	  "$(MAN_DIR)/man1/$(_PROJECT)-publishers.1"
 	rst2man \

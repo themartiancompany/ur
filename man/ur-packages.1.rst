@@ -22,26 +22,34 @@
 
 
 ===============
-ur-package-info
+ur-packages
 ===============
 
------------------------------------------------------
-User Repository package information retrieval command
------------------------------------------------------
-:Version: ur-package-info |version|
+---------------------------------------------
+User Repository packages' list management
+---------------------------------------------
+:Version: ur-packages |version|
 :Manual section: 1
 
 Synopsis
 ========
 
-ur-package-info *[options]* *package*
+ur-packages *[options]* *command*
 
 Description
 ===========
 
-*ur-package-info* is a command to retrieve various
-informations about a package published on the
-user repository.
+User Repository packages' list management
+
+
+Commands
+==========
+
+* list                 Lists all registered publishers'
+                       packages available on
+                       the User Repository.
+* update               Updates the local list for
+                       available packages.
 
 Networks
 ==========
@@ -73,14 +81,7 @@ Options
 -w wallet_path         Wallet path.
 -p wallet_password     Wallet password.
 -s wallet_seed         Wallet seed path.
--n network             EVM network name (${_networks[*]}).
--k api_key             Etherscan-like service key.
--C cache_dir           Work directory.
--H gnupg_home          GNUPG home directory.
--G gnupg_private       GNUPG private home directory.
--P publisher           Target package publisher.
--r revision            Target package revision.
--i info_type           It can be 'publishers'.
+-n network             EVM network name.
 
 -h                     Displays help message.
 -c                     Enable color output
@@ -91,6 +92,7 @@ Bugs
 
 https://github.com/themartiancompany/ur/-/issues
 
+
 Copyright
 =========
 
@@ -99,12 +101,12 @@ Copyright Pellegrino Prevete. AGPL-3.0.
 See also
 ========
 
-* ur-package-info
 * ur
-* ur-packages
+* ur-package-info
 * ur-publishers
 * ur-purchase
 * pub
 * aspe
+* evmfs
 
 .. include:: variables.rst

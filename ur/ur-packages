@@ -170,6 +170,30 @@ _packages_local_get() {
     "${_packages}"
 }
 
+_package_name_check() {
+  local \
+    _pkg_name="${1}" \ 
+    _extra_chars \
+    _msg=()
+  _extra_chars="$( \
+    echo \
+      "${_pkg_name}" | \
+      sed \
+        "s/[a-z0-9@._+-]//g")"
+  if [[ "${_extra_chars}" != "" ]]; then
+    _msg=(
+      "Package '${_pkg_name}' contains"
+      "the following illegal characters"
+      "'${_extra_chars}'. Only allowed"
+      "non alfa-numeric ascii characters are"
+      "'@', '.', '_', '+', '-'."
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+}
+
 _packages_update() {
   local \
     _ur_address="${1}" \
@@ -290,9 +314,7 @@ _packages_update() {
         )
         _msg_info \
           "${_msg[*]}"
-        # TODO: doing this is the unsafest
-        # thing possible, this will stay as it
-        # is until tomorrow at max.
+        _package_name_check \
         printf \
           '%s\n' \
           "${_package_name}" >> \

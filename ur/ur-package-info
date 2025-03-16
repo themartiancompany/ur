@@ -289,51 +289,35 @@ _set_overrides() {
     "n"
   _deployments_dir_auto_detect \
     "ur" \
-    "$(_get \
-         "user" \
-         "level")"
+    "${user_level}"
   _network_auto_detect \
     "UserRepository" \
-    "$(_get \
-         "deployments" \
-         "dir")" \
-    "$(_get \
-         "user" \
-         "level")"
+    "${deployments_dir}" \
+    "${user_level}"
   _api_key_auto_detect \
-    "$(_get \
-         "target" \
-         "network")"
+    "${target_network}"
   _set_override \
     "wallet" \
     "path" \
     "$(_wallet_path_get \
          "evm-wallet" \
-         "$(_get \
-              "wallet" \
-              "name")")"
+         "${wallet_name}"
   _secret_auto_detect \
     "seed" \
     "seed" \
     "evm-wallet" \
-    "$(_get \
-         "wallet" \
-         "name")"
+    "${wallet_name}"
   _secret_auto_detect \
     "password" \
     "plain" \
     "evm-wallet" \
-    "$(_get \
-         "wallet" \
-         "name")"
+    "${wallet_name}"
   _set_override \
     "wallet" \
     "address" \
     "$(evm-wallet \
          get \
-           "$(_get \
-                "wallet" \
-                "name")" \
+           "${wallet_name}" \
            "address")"
   _set_override \
     "cache" \
@@ -342,9 +326,7 @@ _set_overrides() {
   _set_override \
     "gnupg" \
     "home" \
-    "$(_get \
-         "cache" \
-         "dir")/gnupg"
+    "${cache_dir}/gnupg"
   _set_override \
     "gnupg" \
     "private" \
@@ -397,10 +379,7 @@ _usage() {
     _networks \
     _usage_text
   _ur="UserRepository"
-  _ur_deployment="$( \
-    _get \
-      "deployments" \
-      "dir")/${_ur}"
+  _ur_deployment="${deployments_dir}/${_ur}"
   _networks="$( \
     evm-contract-deployment-networks \
       -A \
@@ -443,17 +422,17 @@ $(_display_networks \
                             deployment.
                             Default: ${user_level}
      -d <deployments_dir>   Contracts deployments directory.
-                            Default: $(_get "deployments" "dir")
+                            Default: ${deployments_dir}
      -N <wallet_name>       Wallet name.
-                            Default: $(_get "wallet" "name")
+                            Default: ${wallet_name}
      -w <wallet_path>       Wallet path.
-                            Default: $(_get "wallet" "path")
+                            Default: ${wallet_path}
      -p <wallet_password>   Wallet password.
-                            Default: $(_get "wallet" "password")
+                            Default: ${wallet_password}
      -s <wallet_seed>       Wallet seed path.
-                            Default: $(_get "wallet" "seed")
+                            Default: ${wallet_seed}
      -n <network>           EVM network name (${_networks[*]}).
-                            Default: $(_get "target" "network")
+                            Default: ${target_network}
      -k <api_key>           Etherscan-like service key.
                             Default: ${api_key}
      -C <cache_dir>         Work directory.
@@ -461,13 +440,13 @@ $(_display_networks \
      -H <gnupg_home>        GNUPG home directory.
                             Default: ${gnupg_home}
      -G <gnupg_private>     GNUPG private home directory.
-                            Default: $(_get "gnupg" "private")
+                            Default: ${gnupg_private}
      -P <publisher>         Target package publisher.
-                            Default: $(_get "source" "publisher")
+                            Default: ${source_publisher}
      -r <revision>          Target package revision.
-                            Default: $(_get "target" "revision")
+                            Default: ${target_revision}
      -i <info_type>         It can be 'publishers'.
-                            Default: ${_info_type}
+                            Default: ${info_type}
 
      -h                     This message.
      -c                     Enable color output
