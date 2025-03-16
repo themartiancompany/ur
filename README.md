@@ -122,7 +122,66 @@ Missing dependencies will be reported to user at runtime
 so if you're looking for a complete list we strongly
 suggest consulting the universal build recipe.
 
-# Documentation
+
+### Usage
+
+In this section you find a primer of the most
+common operations.
+
+#### Installing and running an application
+
+```bash
+ur \
+  super-mario-bros
+```
+
+#### Updating the list of the available packages
+
+```bash
+ur-packages \
+  update
+```
+
+#### Showing the list of available packages
+
+```bash
+ur-packages \
+  list
+```
+
+#### Purchasing an application
+
+```bash
+ur-purchase \
+  -P \                                        # the price
+    0 \                                       # 0 dollars
+  super-mario-bros \                          # the pkgbase 
+  0x6E5163fC4BFc1511Dbe06bB605cc14a3e462332b  # the publisher (me)
+  0                                           # the package revision
+```
+
+#### Sign up as publisher
+
+```bash
+  ur-publishers \
+    register \
+    <your_ethereum_address>
+```
+
+#### Publishing an application
+
+```bash
+pub \
+  -v \
+  very-app-much-store-wow
+```
+
+Countless examples of how to write cross-platform,
+uncensorable build recipes are available on
+[The Martian Company HTTP Github Ur mirror](
+  https://github.com/orgs/themartiancompany/repositories?q=-ur)
+
+### Documentation
 
 Manual entries for the programs making up the Ur
 can be consulted using the `man` utility and are
@@ -132,6 +191,7 @@ automatically installed with the program.
 man \
   ur
 ```
+
 
 ### License
 
