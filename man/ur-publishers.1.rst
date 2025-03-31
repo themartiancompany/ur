@@ -100,6 +100,20 @@ at install/run time using the '-P' option.
 Options
 ========
 
+List options
+=============
+
+-y y/n                 Whether to update publishers' keys.
+
+Register options
+=================
+
+-P y/n                 Whether to publish key.
+-U user_name           Publisher's key username.
+-f key_fingerprint     Publisher's key fingerprint.
+
+Contract options
+=================
 -A up_address          Address of the 'User Repository
                        Publishers' contract on the
                        network.
@@ -108,20 +122,28 @@ Options
 -u                     Whether to retrieve publishers' contract
                        address from user directory or custom
                        deployment.
+
+LibEVM options
+===============
+
 -d deployments_dir     Contracts deployments directory.
+-n network             EVM network name (${_networks[*]}).
+
+Credentials options
+====================
+
 -N wallet_name         Wallet name.
 -w wallet_path         Wallet path.
 -p wallet_password     Wallet password.
 -s wallet_seed         Wallet seed path.
--n network             EVM network name (${_networks[*]}).
 -k api_key             Etherscan-like service key.
+
+Application options
+====================
+
 -C cache_dir           Work directory.
 -H gnupg_home          GNUPG home directory.
 -G gnupg_private       GNUPG private home directory.
--y y/n                 Whether to update publishers' keys.
--P y/n                 Whether to publish key.
--U user_name           Publisher's key username.
--f key_fingerprint     Publisher's key fingerprint.
 
 -h                     Displays help message.
 -c                     Enable color output

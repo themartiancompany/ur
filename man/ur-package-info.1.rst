@@ -54,6 +54,14 @@ with Dollars and Dogecoins.
 Options
 ========
 
+-P publisher           Target package publisher.
+-r revision            Target package revision.
+-i info_type           It can be 'publishers'.
+
+
+Contract options
+=================
+
 -A ur_address          Address of the 'User Repository'
                        contract on the
                        network.
@@ -65,22 +73,31 @@ Options
 -C pp_address          Address of the 'Package
                        Publishers' contract on the
                        network.
+
+LibEVM options
+================
+
 -u                     Whether to retrieve publishers' contract
                        address from user directory or custom
                        deployment.
 -d deployments_dir     Contracts deployments directory.
+-n network             EVM network name (${_networks[*]}).
+
+Credentials options
+====================
+
 -N wallet_name         Wallet name.
 -w wallet_path         Wallet path.
 -p wallet_password     Wallet password.
 -s wallet_seed         Wallet seed path.
--n network             EVM network name (${_networks[*]}).
 -k api_key             Etherscan-like service key.
+
+Application options
+====================
+
 -C cache_dir           Work directory.
 -H gnupg_home          GNUPG home directory.
 -G gnupg_private       GNUPG private home directory.
--P publisher           Target package publisher.
--r revision            Target package revision.
--i info_type           It can be 'publishers'.
 
 -h                     Displays help message.
 -c                     Enable color output
