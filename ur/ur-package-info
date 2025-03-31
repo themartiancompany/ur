@@ -27,11 +27,17 @@ _bin="$( \
       command \
         -v \
 	  "env")")"
-_lib="${_bin}/../lib"
-source \
-  "${_lib}/libcrash-bash/crash-bash"
-source \
-  "${_lib}/libevm/libevm"
+_lib="$( \
+  realpath \
+    "${_bin}/../lib")"
+_crash_bash="${_lib}/libcrash-bash/crash-bash"
+_libevm="${_lib}/libevm/libevm"
+_sourced \
+  "${_crash_bash}" 2>/dev/null || \
+  source \
+    "${_crash_bash}"
+_sourced \
+  "${_libevm}"
 
 # shellcheck disable=SC2034
 _global_variables() {
@@ -42,15 +48,6 @@ _global_variables() {
   up_version=""
   pp_address=""
   pp_version=""
-  deployments_dir=""
-  user_level=""
-  wallet_name=""
-  wallet_path=""
-  wallet_password=""
-  wallet_seed=""
-  wallet_address=""
-  target_network=""
-  api_key=""
   cache_dir=""
   gnupg_home=""
   gnupg_private=""
@@ -280,10 +277,6 @@ _set_overrides() {
     "date" \
     "$(_get_date_human)"
   _set_override \
-    "wallet" \
-    "name" \
-    "default"
-  _set_override \
     "user" \
     "level" \
     "n"
@@ -296,6 +289,14 @@ _set_overrides() {
     "${user_level}"
   _api_key_auto_detect \
     "${target_network}"
+  _wallet_overrides_set \
+    "evm-wallet" \
+    "default" \
+    "n"
+  _set_override \
+    "wallet" \
+    "name" \
+    "default"
   _set_override \
     "wallet" \
     "path" \
@@ -380,28 +381,38 @@ _usage() {
     _usage_text
   _ur="UserRepository"
   _ur_deployment="${deployments_dir}/${_ur}"
-  _networks="$( \
+  _networks=( $( \
     evm-contract-deployment-networks \
       -A \
-      "${_ur_deployment}")"
+      "${_ur_deployment}")
+  )
   IFS='' \
     read \
       -r \
       -d '' \
       _usage_text << \
         ENDUSAGETEXT || true
+
 Retrieves information about Ur packages.
 
 Usage:
-  $(_get "app" "name")
+  ${app_name}
     [options]
     <package>
 
   networks:
 $(_display_networks \
-     "${_networks[*]}")
+     "${_networks[@]}")
 
   options:
+     -P <publisher>         Target package publisher.
+                            Default: ${source_publisher}
+     -r <revision>          Target package revision.
+                            Default: ${target_revision}
+     -i <info_type>         It can be 'publishers'.
+                            Default: ${info_type}
+
+  contract options:
      -A <ur_address>        Address of the 'User Repository'
                             contract on the
                             network.
@@ -417,12 +428,15 @@ $(_display_networks \
                             Publishers' contract on the
                             network.
                             Default: ${pp_address}
+  network options:
      -u                     Whether to retrieve publishers' contract
                             address from user directory or custom
                             deployment.
                             Default: ${user_level}
      -d <deployments_dir>   Contracts deployments directory.
                             Default: ${deployments_dir}
+
+  credentials options:
      -N <wallet_name>       Wallet name.
                             Default: ${wallet_name}
      -w <wallet_path>       Wallet path.
@@ -435,18 +449,14 @@ $(_display_networks \
                             Default: ${target_network}
      -k <api_key>           Etherscan-like service key.
                             Default: ${api_key}
+
+  app options:
      -C <cache_dir>         Work directory.
                             Default: ${cache_dir}
      -H <gnupg_home>        GNUPG home directory.
                             Default: ${gnupg_home}
      -G <gnupg_private>     GNUPG private home directory.
                             Default: ${gnupg_private}
-     -P <publisher>         Target package publisher.
-                            Default: ${source_publisher}
-     -r <revision>          Target package revision.
-                            Default: ${target_revision}
-     -i <info_type>         It can be 'publishers'.
-                            Default: ${info_type}
 
      -h                     This message.
      -c                     Enable color output
@@ -500,6 +510,8 @@ _show_config() {
 
 _globals
 _global_variables
+_libevm_global_variables
+_libevm_app_global_variables
 _requirements
 # shellcheck disable=SC2034
 while \

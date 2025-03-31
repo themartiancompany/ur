@@ -27,26 +27,25 @@ _bin="$( \
       command \
         -v \
 	  "env")")"
-_lib="${_bin}/../lib"
-source \
-  "${_lib}/libcrash-bash/crash-bash"
-source \
-  "${_lib}/libevm/libevm"
+_lib="$( \
+  realpath \
+    "${_bin}/../lib")"
+_crash_bash="${_lib}/libcrash-bash/crash-bash"
+_libevm="${_lib}/libevm/libevm"
+_sourced \
+  "${_crash_bash}" 2>/dev/null || \
+  source \
+    "${_crash_bash}"
+_sourced \
+  "${_libevm}"
 
 # shellcheck disable=SC2034
 _global_variables() {
   call_date=""
   up_address=""
   up_version=""
-  deployments_dir=""
-  user_level=""
-  wallet_name=""
-  wallet_path=""
-  wallet_password=""
-  wallet_seed=""
-  wallet_address=""
-  target_network=""
-  api_key=""
+  _libevm_global_variables
+  _libevm_app_global_variables
   cache_dir=""
   gnupg_home=""
   gnupg_private=""
@@ -151,8 +150,6 @@ _publisher_list_call_opts_setup() {
       "static"
   )
 }
-
-
 
 _work_dir_setup() {
   local \
@@ -805,47 +802,22 @@ _set_overrides() {
     "date" \
     "$(_get_date_human)"
   _set_override \
-    "wallet" \
-    "name" \
-    "default"
-  _set_override \
     "user" \
     "level" \
     "n"
   _deployments_dir_auto_detect \
     "ur" \
-    "$(_get \
-         "user" \
-         "level")"
+    "${user_level}"
   _network_auto_detect \
     "UserRepositoryPublishers" \
     "${deployments_dir}" \
     "${user_level}"
   _api_key_auto_detect \
     "${target_network}"
-  _set_override \
-    "wallet" \
-    "path" \
-    "$(_wallet_path_get \
-         "evm-wallet" \
-         "${wallet_name}")"
-  _secret_auto_detect \
-    "seed" \
-    "seed" \
+  _wallet_overrides_set \
     "evm-wallet" \
-    "${wallet_name}"
-  _secret_auto_detect \
-    "password" \
-    "plain" \
-    "evm-wallet" \
-    "${wallet_name}"
-  _set_override \
-    "wallet" \
-    "address" \
-    "$(evm-wallet \
-         get \
-           "${wallet_name}" \
-           address)"
+    "default" \
+    "y"
   _set_override \
     "cache" \
     "dir" \
@@ -906,24 +878,23 @@ _usage() {
     _networks \
     _usage_text
   _up="UserRepositoryPublishers"
-  _up_deployment="$( \
-    _get \
-      "deployments" \
-      "dir")/${_up}"
-  _networks="$( \
+  _up_deployment="${deployments_dir}/${_up}"
+  _networks=( $( \
     evm-contract-deployment-networks \
       -A \
-      "${_up_deployment}")"
+      "${_up_deployment}")
+  )
   IFS='' \
     read \
       -r \
       -d '' \
       _usage_text << \
         ENDUSAGETEXT || true
+
 Ur Publishers management
 
 Usage:
-  $(_get "app" "name")
+  ${app_name}
     [options]
     <command>
     <key>
@@ -937,9 +908,23 @@ Usage:
 
   networks:
 $(_display_networks \
-     "${_networks[*]}")
+     "${_networks[@]}")
 
   options:
+     -y <y/n>               Whether to update publishers' keys.
+                            Default: ${keys_update}
+     -P <y/n>               Whether to publish key.
+                            Default: ${key_publish}
+
+  publish key options:
+     -U <user_name>         Publisher's key username.
+                            Default: ${user_name}
+     -F <full_name>         Publisher's key full name.
+                            Default: ${full_name}
+     -f <key_fingerprint>   Publisher's key fingerprint.
+                            Default: ${key_fingerprint}
+
+  contract options:
      -A <up_address>        Address of the 'User Repository
                             Publishers' contract on the
                             network.
@@ -947,12 +932,16 @@ $(_display_networks \
      -V <up_version>        Version of the target 'User Repository
                             Publishers' contract.
                             Default: ${up_version}
+
+  libevm options:
      -u                     Whether to retrieve publishers' contract
                             address from user directory or custom
                             deployment.
                             Default: ${user_level}
      -d <deployments_dir>   Contracts deployments directory.
                             Default: ${deployments_dir}
+
+  credentials options:
      -N <wallet_name>       Wallet name.
                             Default: ${wallet_name}
      -w <wallet_path>       Wallet path.
@@ -965,22 +954,14 @@ $(_display_networks \
                             Default: ${target_network}
      -k <api_key>           Etherscan-like service key.
                             Default: ${api_key}
+
+  app options:
      -C <cache_dir>         Work directory.
                             Default: ${cache_dir}
      -H <gnupg_home>        GNUPG home directory.
                             Default: ${gnupg_home}
      -G <gnupg_private>     GNUPG private home directory.
                             Default: ${gnupg_private}
-     -y <y/n>               Whether to update publishers' keys.
-                            Default: ${keys_update}
-     -P <y/n>               Whether to publish key.
-                            Default: ${key_publish}
-     -U <user_name>         Publisher's key username.
-                            Default: ${user_name}
-     -f <key_fingerprint>   Publisher's key fingerprint.
-                            Default: ${key_fingerprint}
-     -F <full_name>         Publisher's key full name.
-                            Default: ${full_name}
 
      -h                     This message.
      -c                     Enable color output
