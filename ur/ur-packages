@@ -358,9 +358,9 @@ _packages_results_add() {
   # add spaces. Probably both.
   _packages+=( $( \
     cat \
-      "${_db}") | \
+      "${_db}" | \
       sort \
-        -V
+        -V)
   )
 }
 
