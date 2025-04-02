@@ -105,6 +105,10 @@ Options
 -y                     If enabled do not ask for confirmation
                        before purchase.
                        Default: ${auto_confirm}
+
+Contract options
+=================
+
 -A <ur_address>        Address of the 'User Repository'
                        contract on the
                        network.
@@ -112,12 +116,22 @@ Options
 -V <ur_version>        Version of the target 'User Repository'
                        contract.
                        Default: ${ur_version}
+
+LibEVM options
+===============
+
 -u                     Whether to retrieve publishers' contract
                        address from user directory or custom
                        deployment.
                        Default: ${user_level}
 -d <deployments_dir>   Contracts deployments directory.
                        Default: ${deployments_dir}
+-n <network>           EVM network name (${_networks[*]}).
+                       Default: ${target_network}
+
+Credentials Options
+====================
+
 -N <wallet_name>       Wallet name.
                        Default: ${wallet_name}
 -w <wallet_path>       Wallet path.
@@ -126,10 +140,12 @@ Options
                        Default: ${wallet_password}
 -s <wallet_seed>       Wallet seed path.
                        Default: ${wallet_seed}
--n <network>           EVM network name (${_networks[*]}).
-                       Default: ${target_network}
 -k <api_key>           Etherscan-like service key.
                        Default: ${api_key}
+
+Application options
+=====================
+
 -C <cache_dir>         Work directory.
                        Default: ${cache_dir}
 

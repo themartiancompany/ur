@@ -62,6 +62,9 @@ with Dollars and Dogecoins.
 Options
 ========
 
+Contract options
+=================
+
 -A ur_address          Address of the 'User Repository'
                        contract on the
                        network.
@@ -73,15 +76,24 @@ Options
 -C pp_address          Address of the 'Package
                        Publishers' contract on the
                        network.
+
+LibEVM options
+================
 -u                     Whether to retrieve publishers' contract
                        address from user directory or custom
                        deployment.
 -d deployments_dir     Contracts deployments directory.
+-n network             EVM network name.
+
+Credentials Options
+=====================
 -N wallet_name         Wallet name.
 -w wallet_path         Wallet path.
 -p wallet_password     Wallet password.
 -s wallet_seed         Wallet seed path.
--n network             EVM network name.
+
+Application options
+====================
 
 -h                     Displays help message.
 -c                     Enable color output

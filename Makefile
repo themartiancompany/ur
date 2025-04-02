@@ -22,7 +22,7 @@
 PREFIX ?= /usr/local
 _PROJECT=ur
 SOLIDITY_COMPILER_BACKEND ?= solc
-DOC_DIR=$(DESTDIR)$(PREFIX)/share/doc/ur
+DOC_DIR=$(DESTDIR)$(PREFIX)/share/doc/$(_PROJECT)
 BIN_DIR=$(DESTDIR)$(PREFIX)/bin
 LIB_DIR=$(DESTDIR)$(PREFIX)/lib/$(_PROJECT)
 MAN_DIR?=$(DESTDIR)$(PREFIX)/share/man
@@ -33,8 +33,10 @@ DOC_FILES=\
   $(wildcard *.md)
 SCRIPT_FILES=$(wildcard $(_PROJECT)/*)
 
-_INSTALL_FILE=install -Dm644
-_INSTALL_EXE=install -Dm755
+_INSTALL_FILE=install -vDm644
+_INSTALL_EXE=install -vDm755
+_INSTALL_DIR=install vdm755
+
 _INSTALL_CONTRACTS_DEPLOYMENT_FUN:=\
   install-contracts-deployments-$(SOLIDITY_COMPILER_BACKEND)
 _BUILD_TARGETS:=\
@@ -181,8 +183,7 @@ install-doc:
 
 install-man:
 
-	install \
-	  -vdm755 \
+	$(_INSTALL_DIR) \
 	  "$(MAN_DIR)/man1"
 	rst2man \
 	  "man/$(_PROJECT).1.rst" \
