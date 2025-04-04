@@ -27,20 +27,16 @@ interface IERC20 {
     uint256 _amount)
     external
     pure
-    returns(uint256);
-  function allowance(
-    address _address,
-    uint256 _address)
-    external
-    view
-    returns(uint256);
+    returns(
+      uint256);
   function transferFrom(
     address _from,
     address _to,
     uint256 _amount)
     external
     pure
-    returns(uint256);
+    returns(
+      uint256);
 }
 
 /**
@@ -50,7 +46,7 @@ interface IERC20 {
 contract UserRepository {
 
     address public immutable deployer = 0xea02F564664A477286B93712829180be4764fAe2;
-    string public hijess = "urlife";
+    string public hijess = "urmylife";
     string public version = "1.0";
     uint256 public baseRepositoryRevenue = 5;
     uint256 public mediumRepositoryRevenue = 10;
@@ -62,20 +58,24 @@ contract UserRepository {
     address public immutable nullAddress 0x0000000000000000000000000000000000000000;
 
     mapping(
-      address => uint256 ) public packageNo; 
+      address => uint256 ) public packageNo;
     mapping(
       address => mapping(
         uint256 => string ) ) public package;
     mapping(
       string => mapping(
-        address => uint256 ) ) public revNo; 
+        address => uint256 ) ) public revNo;
     mapping(
       string => mapping(
-        address => uint256 ) ) public revTarget; 
+        address => uint256 ) ) public revTarget;
     mapping(
       string => mapping(
         address => mapping(
-          uint256 => string ) ) ) public recipe; 
+          uint256 => string ) ) ) public recipe;
+    mapping(
+      string => mapping(
+        address => mapping(
+          uint256 => uint256 ) ) ) public epoch;
     mapping(
       string => mapping(
         address => mapping(
@@ -151,7 +151,7 @@ contract UserRepository {
         keccak256(
           _uri_prefix) == keccak256(
                             _prefix),
-	"input is not an evmfs uri");
+	"Input is not an evmfs URI.");
     }
 
     /**
@@ -177,6 +177,11 @@ contract UserRepository {
         revNo[
           _package][
             _publisher];
+      epoch[
+        _package][
+          _publisher][
+            _revNo] =
+        block.number;
       recipe[
         _package][
           _publisher][
@@ -373,21 +378,16 @@ contract UserRepository {
             _currency);
           require(
             _token.approve(
-	      deployer,
-	      _publisherShare),
-	    "You need to allow the transfer of the funds to the publisher."
-	  );
-          require(
-            _token.approve(
-	      _deployer,
-	      _value - _publisherShare),
-	    "You need to allow the transfer of the funds to the Ur deployer."
+	      address(
+                this),
+	      _value),
+	    "You need to allow the contract to transfer the funds to the recipients."
 	  );
           require(
             _token.transferFrom(
               msg.sender,
-              _publisher,
-              _publisherShare),
+              _deployer,
+              _value - _publisherShare),
             "Token transfer to the deployer failed."
           );
           require(
@@ -395,9 +395,9 @@ contract UserRepository {
               msg.sender,
               _publisher,
               _publisherShare),
-            "Token transfer to the deployer failed."
+            "Token transfer to the publisher failed."
           );
-	}
+        }
       }
       purchased[
         _package][
@@ -416,9 +416,12 @@ contract UserRepository {
       string memory _package)
     public
     view
-    returns (uint256)
+    returns(
+      uint256)
     {
-      return revTarget[_package][_publisher];
+      return revTarget[
+               _package][
+                 _publisher];
     }
 
     /**
@@ -433,13 +436,17 @@ contract UserRepository {
       uint256 _revision)
     public
     view
-    returns (string memory)
+    returns(
+      string memory)
     {
       checkPurchased(
         _package,
         _publisher,
         _revision
       );
-      return recipe[_package][_publisher][_revision];
+      return recipe[
+               _package][
+                 _publisher][
+                   _revision];
     }
 }
