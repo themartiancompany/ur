@@ -153,8 +153,11 @@ _work_dir_setup() {
 
 _packages_local_get() {
   local \
-    _db="${1}" \
-    _packages
+    _publisher="${1}" \
+    _packages \
+    _publisher_dir
+  _publisher_dir="${_cache_dir}/${_publisher}"
+  _db="${_publisher_dir}/packages.db"
   if [[ ! -e "${_db}" ]]; then
     mkdir \
       -p \
@@ -272,10 +275,9 @@ _packages_update() {
     )
     _msg_info \
       "${_msg[*]}"
-    _db="${_cache_dir}/${_publisher}/packages.db"
     _packages_local_total="$( \
       _packages_local_get \
-        "${_db}")"
+        "${_publisher}")"
     _msg=(
       "Locally are listed"
       "'${_packages_local_total}'"
