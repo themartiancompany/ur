@@ -341,7 +341,7 @@ contract UserRepository {
           "The receiver has already purchased the target recipe revision."
         );
 	uint256 _value;
-        uint256 _currency =
+        address _currency =
           currency[
             _package][
               _publisher][
