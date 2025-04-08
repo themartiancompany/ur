@@ -55,7 +55,7 @@ contract UserRepository {
     uint256 public baseRevenueThreshold = unit;
     uint256 public fullRevenueThreshold = 10 * unit;
     uint256 public scale = 1000000000;
-    // address public immutable nullAddress 0x0000000000000000000000000000000000000000;
+    address public immutable nullAddress 0x0;
 
     mapping(
       address => uint256 ) public packageNo;
@@ -351,10 +351,10 @@ contract UserRepository {
             _package][
             _publisher][
               _revision];
-        if ( _currency == 0x0000000000000000000000000000000000000000 ) {
+        if ( _currency == nullAddress ) {
           uint256 _value =
             msg.value;
-        else if ( _currency != 0x0000000000000000000000000000000000000000 ) {
+        else if ( _currency != nullAddress ) {
           uint256 _value =
             _amount;
         }
@@ -365,7 +365,7 @@ contract UserRepository {
         uint256 _publisherShare =
             getPublisherShare(
               _price);
-        if ( _currency == 0x0000000000000000000000000000000000000000 ) {
+        if ( _currency == nullAddress ) {
           payable(
             _publisher).transfer(
               _publisherShare);
@@ -373,7 +373,7 @@ contract UserRepository {
 	      deployer).transfer(
                 _value - _publisherShare);
 	  }
-        else if ( _currency != 0x0000000000000000000000000000000000000000 ) {
+        else if ( _currency != nullAddress ) {
           IERC20 _token = IERC20(
             _currency);
           require(
