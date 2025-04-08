@@ -387,7 +387,7 @@ contract UserRepository {
           require(
             _token.transferFrom(
               msg.sender,
-              _deployer,
+              deployer,
               _value - _publisherShare),
             "Token transfer to the deployer failed."
           );
