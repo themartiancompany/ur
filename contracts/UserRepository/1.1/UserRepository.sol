@@ -353,6 +353,7 @@ contract UserRepository {
         if ( _currency == address(0) ) {
           uint256 _value =
             msg.value;
+	}
         else if ( _currency != address(0) ) {
           uint256 _value =
             _amount;
@@ -371,7 +372,7 @@ contract UserRepository {
           payable(
 	      deployer).transfer(
                 _value - _publisherShare);
-	  }
+	}
         else if ( _currency != address(0) ) {
           IERC20 _token = IERC20(
             _currency);
