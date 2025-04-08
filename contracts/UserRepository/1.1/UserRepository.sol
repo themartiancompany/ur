@@ -28,7 +28,7 @@ interface IERC20 {
     external
     pure
     returns(
-      uint256);
+      bool);
   function transferFrom(
     address _from,
     address _to,
@@ -36,7 +36,7 @@ interface IERC20 {
     external
     pure
     returns(
-      uint256);
+      bool);
 }
 
 /**
