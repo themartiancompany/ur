@@ -340,6 +340,7 @@ contract UserRepository {
           _purchased == false,
           "The receiver has already purchased the target recipe revision."
         );
+	uint256 _value;
         uint256 _currency =
           currency[
             _package][
@@ -351,11 +352,11 @@ contract UserRepository {
             _publisher][
               _revision];
         if ( _currency == address(0) ) {
-          uint256 _value =
+          _value =
             msg.value;
 	}
         else if ( _currency != address(0) ) {
-          uint256 _value =
+          _value =
             _amount;
         }
         require(
