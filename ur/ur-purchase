@@ -133,7 +133,7 @@ _work_dir_setup() {
   _tmp_dir="${_cache_dir}"
   _msg=(
     "setting up work directory"
-    "'${_tmp_dir}'"
+    "'${_tmp_dir}'."
   )
   _msg_info \
     "${_msg[*]}"
@@ -166,7 +166,7 @@ _revision_latest_get() {
       "${_publisher}")"
   if [[ "${_revno}" == "0" ]]; then
     _msg=(
-      "publisher '${_publisher}'"
+      "Publisher '${_publisher}'"
       "has published no '${_pkg}'"
       "package."
     )
@@ -177,14 +177,14 @@ _revision_latest_get() {
     _revision_latest="$(( \
       _revno - 1))"
     _msg=(
-      "latest revision for '${_pkg}'"
+      "Latest revision for '${_pkg}'"
       "is '${_revision_latest}'."
     )
     _msg_info \
       "${_msg[*]}"
   else
     _msg=(
-      "error while retrieving"
+      "Error while retrieving"
       "revision for package '${_pkg}'"
     )
     _msg_error \
@@ -378,6 +378,9 @@ _recipe_purchase() {
         "${_pkg}" \
         "${_revision}"
     fi
+    _price_validate \
+      "${_price}" \
+      "${_price_revision}"
     if [[ "${_revision_currency}" == "${_address_null}" ]]; then
       _msg=(
         "Purchase currency is network's gas."
@@ -397,15 +400,6 @@ _recipe_purchase() {
       _msg_info \
         "${_msg[*]}"
     fi
-    _price_validate \
-      "${_price}" \
-      "${_price_revision}"
-    _purchase_call_opts+=(
-      -V
-        "${_price}"
-      -u
-        "wei"
-    )
     if [[ "${_auto_confirm}" == "y" ]]; then
       _purchase="y"
     elif [[ "${_auto_confirm}" == "n" ]]; then
