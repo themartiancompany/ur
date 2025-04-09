@@ -747,7 +747,7 @@ $(_display_networks \
                             Default: ${api_key}
 
   app options:
-     -C <cache_dir>         Work directory.
+     -W <cache_dir>         Work directory.
                             Default: ${cache_dir}
 
      -h                     This message.
@@ -803,39 +803,55 @@ _globals
 _global_variables
 _requirements
 # shellcheck disable=SC2034
+getopts_opts="$( \
+  printf \
+    "%s" \
+    "r:P:m:yG:" \
+    "A:V:" \
+    "$(_libevm_app_getopts_params_get)" \
+    "a:n:" \
+    "$(_wallet_getopts_params_get)" \
+    "W:cvh")"
 while \
   getopts \
-    'r:P:m:yA:V:ud:N:w:p:s:n:k:C:H:G:cvh?' \
+    "${getopts_opts}" \
     arg; do
+  _wallet_getopts_case
+  _libevm_app_getopts_case
   case \
     "${arg}" in
-    r) override_target_recipient="${OPTARG}" ;;
-    P) override_target_price="${OPTARG}" ;;
-    m) override_measure_unit="${OPTARG}" ;;
-    y) override_auto_confirm="y" ;;
-    A) override_ur_address="${OPTARG}" ;;
-    V) override_ur_version="${OPTARG}" ;;
-    u) override_user_level="y" ;;
-    d) override_deployments_dir="${OPTARG}" ;;
-    N) override_wallet_name="${OPTARG}" ;;
-    w) override_wallet_path="${OPTARG}" ;;
-    p) override_wallet_password="${OPTARG}" ;;
-    s) override_wallet_seed="${OPTARG}" ;;
-    n) override_target_network="${OPTARG}" ;;
-    k) override_api_key="${OPTARG}" ;;
-    C) override_cache_dir="${OPTARG}" ;;
-    c) override_color="y" ;;
-    v) override_quiet="n" ;;
-    h|?) _set_overrides && \
-         _usage \
-           0 ;;
-    *)
-    _msg_error \
-      "Invalid argument '${arg}'" \
-      0
-    _usage \
-      1
-    ;;
+    r) \
+      override_target_recipient="${OPTARG}" ;;
+    P) \
+      override_target_price="${OPTARG}" ;;
+    m) \
+      override_measure_unit="${OPTARG}" ;;
+    y) \
+      override_auto_confirm="y" ;;
+    A) \
+      override_ur_address="${OPTARG}" ;;
+    V) \
+      override_ur_version="${OPTARG}" ;;
+    n) \
+      override_target_network="${OPTARG}" ;;
+    W) \
+      override_cache_dir="${OPTARG}" ;;
+    c) \
+      override_color="y" ;;
+    v) \
+      override_quiet="n" ;;
+    h) \
+      _set_overrides && \
+      _usage \
+        0 ;;
+    *) \
+      if [[ " ${getopts_opts} " != *"${arg}"* ]]; then
+        _msg_error \
+          "Invalid argument '${arg}'." \
+          0
+        _usage \
+          1
+      fi ;;
   esac
 done
 shift \
@@ -844,29 +860,20 @@ shift \
   ))
 if (( $# < 1 )); then
   _msg_error \
-    "no package given" \
+    "No package given." \
     0
   _set_overrides
   _usage \
     1
 fi
 if (( 0 < $# )); then
-  _set \
-    "target" \
-    "package" \
-    "${1}"
+  target_package="${1}"
 fi
 if (( 1 < $# )); then
-  _set \
-    "target" \
-    "publisher" \
-    "${2}"
+  target_publisher="${2}"
 fi
 if (( 2 < $# )); then
-  _set \
-    "target" \
-    "revision" \
-    "${3}"
+  target_revision="${3}"
 fi
 shift \
   3 || \
