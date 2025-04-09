@@ -151,7 +151,7 @@ _revision_latest_get() {
     _msg=() \
     _revno
   _msg=(
-    "getting latest revision for"
+    "Getting latest revision for"
     "package '${_pkg}' and publisher"
     "'${_publisher}'."
   )
@@ -248,7 +248,7 @@ _revision_currency_get() {
     _revision="${4}" \
     _msg=()
   _msg=(
-    "Getting price for revision '${_revision}'"
+    "Getting currency for revision '${_revision}'"
     "of package '${_pkg}' by publisher"
     "'${_publisher}'."
   )
@@ -271,7 +271,7 @@ _price_validate() {
     _msg=()
   if (( "${_price}" < "${_price_revision}" )); then
     _msg=(
-      "trying to buy recipe for '${_price}',"
+      "Trying to buy recipe for '${_price}',"
       "wei but its set price"
       "is '${_price_revision}' wei."
       "Raising price to '${_price_revision}' wei." 
@@ -281,7 +281,7 @@ _price_validate() {
     _price="${_price_revision}"
   elif (( "${_price}" > "${_price_revision}" )); then
     _msg=(
-      "trying to buy recipe for for '${_price}'"
+      "Trying to buy recipe for for '${_price}'"
       "wei, while its set price"
       "is '${_price_revision}' wei."
     )
@@ -420,6 +420,9 @@ _recipe_purchase() {
         -p \
           "${_msg[*]}" \
         _purchase
+      _purchase="$( \
+        _lower \
+          "${_purchase}")"
     fi
     if [[ "${_purchase}" == "y" ]]; then
       evm-contract-call \
