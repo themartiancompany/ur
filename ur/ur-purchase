@@ -201,7 +201,7 @@ _revision_price_get() {
     _revision="${4}" \
     _msg=()
   _msg=(
-    "getting price for revision '${_revision}'"
+    "Getting price for revision '${_revision}'"
     "of package '${_pkg}' by publisher"
     "'${_publisher}'."
   )
@@ -224,20 +224,44 @@ _revision_validate() {
     _msg=()
   if (( "${_revision}" < "${_revision_latest}" )); then
     _msg=(
-      "getting revision '${_revision}',"
+      "Getting revision '${_revision}',"
       "while latest is '${_revision_latest}'."
     )
     _msg_warning \
       "${_msg[*]}"
   elif (( "${_revision}" > "${_revision_latest}" )); then
     _msg=(
-      "trying to get revision '${_revision}',"
+      "Trying to get revision '${_revision}',"
       "while latest is '${_revision_latest}'."
     )
     _msg_error \
       "${_msg[*]}" \
       1
   fi
+}
+
+_revision_currency_get() {
+  local \
+    _ur_address="${1}" \
+    _publisher="${2}" \
+    _pkg="${3}" \
+    _revision="${4}" \
+    _msg=()
+  _msg=(
+    "Getting price for revision '${_revision}'"
+    "of package '${_pkg}' by publisher"
+    "'${_publisher}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _revision_currency="$( \
+    evm-contract-call \
+      "${_data_call_opts[@]}" \
+      "${_ur_address}" \
+      "currency" \
+      "${_pkg}" \
+      "${_publisher}" \
+      "${_revision}")"
 }
 
 _price_validate() {
@@ -286,11 +310,14 @@ _recipe_purchase() {
     _purchase_call_opts=() \
     _revision_latest \
     _price_revision \
+    _revision_currency \
     _purchase \
-    _purchased
+    _purchased \
+    _address_null
+  _address_null="0x0000000000000000000000000000000000000000"
   _recipe_purchase_call_opts_setup
   _msg=(
-    "purchasing revision '${_revision}'"
+    "Purchasing revision '${_revision}'"
     "of package '${_pkg}'"
     "from publisher '${_publisher}'"
     "for '${_price}' ${_measure_unit}."
@@ -338,6 +365,38 @@ _recipe_purchase() {
       "${_publisher}" \
       "${_pkg}" \
       "${_revision}"
+    if (( 0 < "${_price}" )); then
+      _msg=(
+        "Non-negative price, discovering"
+        "purchase currency."
+      )
+      _msg_info \
+        "${_msg[*]}"
+      _revision_currency_get \
+        "${_ur_address}" \
+        "${_publisher}" \
+        "${_pkg}" \
+        "${_revision}"
+    fi
+    if [[ "${_revision_currency}" == "${_address_null}" ]]; then
+      _msg=(
+        "Purchase currency is network's gas."
+      )
+      _msg_info \
+        "${_msg[*]}"
+      _purchase_call_opts+=(
+        -V
+          "${_price}"
+        -u
+          "wei"
+      )
+    elif [[ "${_revision_currency}" != "${_address_null}" ]]; then
+      _msg=(
+        "Purchase currency is '${_revision_currency}'."
+      )
+      _msg_info \
+        "${_msg[*]}"
+    fi
     _price_validate \
       "${_price}" \
       "${_price_revision}"
@@ -351,10 +410,11 @@ _recipe_purchase() {
       _purchase="y"
     elif [[ "${_auto_confirm}" == "n" ]]; then
       _msg=(
-        "Purchase revision '${_revision}'" \
-        "of package '${_pkg}' by" \
-        "publisher '${_publisher}'" \
-        "at price '${_price}' wei? [y/N] "
+        "Purchase revision '${_revision}'"
+        "of package '${_pkg}' by"
+        "publisher '${_publisher}'"
+        "at price '${_price}' wei"
+        "in currency '${_revision_currency}'? [y/N] "
       )
       read \
         -p \
