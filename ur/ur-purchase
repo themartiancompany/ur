@@ -809,7 +809,7 @@ getopts_opts="$( \
     "r:P:m:yG:" \
     "A:V:" \
     "$(_libevm_app_getopts_params_get)" \
-    "a:n:" \
+    "n:" \
     "$(_wallet_getopts_params_get)" \
     "W:cvh")"
 while \
