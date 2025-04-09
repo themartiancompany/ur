@@ -313,7 +313,8 @@ _recipe_purchase() {
     _revision_currency \
     _purchase \
     _purchased \
-    _address_null
+    _address_null \
+    _amount
   _address_null="0x0000000000000000000000000000000000000000"
   _recipe_purchase_call_opts_setup
   _msg=(
@@ -393,12 +394,14 @@ _recipe_purchase() {
         -u
           "wei"
       )
+      _amount="0"
     elif [[ "${_revision_currency}" != "${_address_null}" ]]; then
       _msg=(
         "Purchase currency is '${_revision_currency}'."
       )
       _msg_info \
         "${_msg[*]}"
+      _amount="${_price}"
     fi
     if [[ "${_auto_confirm}" == "y" ]]; then
       _purchase="y"
@@ -426,7 +429,8 @@ _recipe_purchase() {
         "${_pkg}" \
         "${_publisher}" \
         "${_revision}" \
-        "${_recipient}" 
+        "${_recipient}" \
+        "${_amount}"
       echo \
         "Revision correctly purchased."
     else
