@@ -315,6 +315,8 @@ contract UserRepository {
         scale);
     }
 
+
+
     /**
      * @dev Approve a package recipe purchase.
      * @param _package Package(s group) built by the recipe.
@@ -335,14 +337,18 @@ contract UserRepository {
             _publisher][
               _revision];
       if ( _currency != address(0) ) {
-            IERC20 _token = IERC20(
-              _currency);
-            require(
-              _token.approve(
-                deployer,
-                _amount),
-              "Token approval for the contract failed."
-            );
+        IERC20 _token = IERC20(
+          _currency);
+        _token.approve(
+          address(
+            this),
+          _amount);
+      }
+      else if ( _currency == address(0) ) {
+        require(
+          false,
+          "There is no need to approve a gas transaction."
+        );
       }
     }
 

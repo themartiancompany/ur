@@ -442,6 +442,8 @@ _recipe_purchase() {
           "${_purchase}")"
     fi
     if [[ "${_purchase}" == "y" ]]; then
+      # evm-contract-call \
+      #   ""
       evm-contract-call \
         "${_purchase_call_opts[@]}" \
         "${_ur_address}" \
