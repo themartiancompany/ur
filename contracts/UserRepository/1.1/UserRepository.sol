@@ -440,42 +440,54 @@ contract UserRepository {
       address _publisher,
       uint256 _revision)
       public {
-      address _currency =
-        currency[
+      bool _purchased =
+        purchased[
           _package][
             _publisher][
-              _revision];
-      if ( _currency != address(0) ) {
-        address _amount =
-          price[
+              _revision][
+                _receiver];
+      if ( msg.sender != _publisher ) {
+        require(
+          _purchased == false,
+          "The receiver has already purchased the target recipe revision."
+        );
+        address _currency =
+          currency[
             _package][
               _publisher][
                 _revision];
-        IERC20 _token =
-          IERC20(
-            _currency);
-        uint256 _allowance =
-          _token.allowance(
-            msg.sender,
-            address(
-              this));
-        if ( _amount - _allowance >= 0 ) {
-          bool _approved =
-            _token.approve(
+        if ( _currency != address(0) ) {
+          address _amount =
+            price[
+              _package][
+                _publisher][
+                  _revision];
+          IERC20 _token =
+            IERC20(
+              _currency);
+          uint256 _allowance =
+            _token.allowance(
+              msg.sender,
               address(
-                this),
-              _amount - _allowance);
-          if ( _approved == false ) {
-            revert(
-              "The approval wasn't executed correctly.");
-	  }
-	}
-      }
-      else if ( _currency == address(0) ) {
-        require(
-          false,
-          "There is no need to approve a gas transaction."
-        );
+                this));
+          if ( _amount - _allowance >= 0 ) {
+            bool _approved =
+              _token.approve(
+                address(
+                  this),
+                _amount - _allowance);
+            if ( _approved == false ) {
+              revert(
+                "The approval wasn't executed correctly.");
+            }
+          }
+        }
+        else if ( _currency == address(0) ) {
+          require(
+            false,
+            "There is no need to approve a gas transaction."
+          );
+        }
       }
     }
 
