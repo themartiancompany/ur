@@ -22,15 +22,7 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 interface IERC20 { 
-  function approve(
-    address _address,
-    uint256 _amount)
-    external
-    pure
-    returns(
-      bool);
-  function transferFrom(
-    address _from,
+  function transfer(
     address _to,
     uint256 _amount)
     external
@@ -378,22 +370,13 @@ contract UserRepository {
           IERC20 _token = IERC20(
             _currency);
           require(
-            _token.approve(
-	      address(
-                this),
-	      _value),
-	    "You need to allow the contract to transfer the funds to the recipients."
-	  );
-          require(
-            _token.transferFrom(
-              msg.sender,
+            _token.transfer(
               deployer,
               _value - _publisherShare),
             "Token transfer to the deployer failed."
           );
           require(
-            _token.transferFrom(
-              msg.sender,
+            _token.transfer(
               _publisher,
               _publisherShare),
             "Token transfer to the publisher failed."
