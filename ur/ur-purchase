@@ -91,8 +91,6 @@ _contract_call_opts_setup() {
   _contract_call_opts+=(
     -n
       "${_target_network}"
-    -N
-      "${_wallet_name}"
     -k
       "${_api_key_path}"
     -A
@@ -102,6 +100,30 @@ _contract_call_opts_setup() {
     -C
       "${_compiler_output}"
   )
+  if [[ "${_wallet_name}" != "" ]]; then
+    _contract_call_opts+=(
+      -N
+        "${_wallet_name}"
+    )
+  fi
+  if [[ "${_wallet_path}" != "" ]]; then
+    _contract_call_opts+=(
+      -w
+        "${_wallet_path}"
+    )
+  fi
+  if [[ "${_wallet_seed}" != "" ]]; then
+    _contract_call_opts+=(
+      -s
+        "${_wallet_seed}"
+    )
+  fi
+  if [[ "${_wallet_password}" != "" ]]; then
+    _contract_call_opts+=(
+      -p
+        "${_wallet_password}"
+    )
+  fi
 }
 
 _recipe_purchase_call_opts_setup() {
