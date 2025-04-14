@@ -22,7 +22,15 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 interface IERC20 { 
-  function transfer(
+  function approve(
+    address _delegate,
+    uint256 _amount)
+    external
+    pure
+    returns(
+      bool);
+  function transferFrom(
+    address _from,
     address _to,
     uint256 _amount)
     external
@@ -134,15 +142,16 @@ contract UserRepository {
         _i <= 7;
         _i++){
         _uri_prefix[
-          _i] = bytes(
-	    _uri)[_i];
+          _i] =
+          bytes(
+            _uri)[_i];
       }
       require(
-	_uri_prefix.length == _prefix.length &&
+        _uri_prefix.length == _prefix.length &&
         keccak256(
           _uri_prefix) == keccak256(
                             _prefix),
-	"Input is not an evmfs URI.");
+        "Input is not an evmfs URI.");
     }
 
     /**
@@ -195,10 +204,10 @@ contract UserRepository {
         package[
           _publisher][
             _packageNo] =
-	  _package;
+          _package;
         packageNo[
           _publisher] =
-	  _packageNo + 1;  
+          _packageNo + 1;  
       }
       revNo[
         _package][
@@ -286,7 +295,7 @@ contract UserRepository {
           baseRepositoryRevenue;
       }
       else if ( baseRevenueThreshold < _amount && _amount <= fullRevenueThreshold * unit ) {
-	repositoryRevenue =
+        repositoryRevenue =
           mediumRepositoryRevenue;
       }
       else if ( _amount > fullRevenueThreshold ) {
@@ -304,6 +313,29 @@ contract UserRepository {
             publisherRevenue),
           100),
         scale);
+    }
+
+    function approvePurchaseRecipe(
+    string memory _package,
+    address _publisher,
+    uint256 _revision,
+    uint256 _amount)
+    public
+    payable {
+      address _currency =
+        currency[
+          _package][
+            _publisher][
+              _revision];
+    if ( _currency != address(0) ) {
+          IERC20 _token = IERC20(
+            _currency);
+          require(
+            _token.approve(
+              deployer,
+              _amount),
+            "Token approval for the contract failed."
+          );
     }
 
     /**
@@ -332,7 +364,7 @@ contract UserRepository {
           _purchased == false,
           "The receiver has already purchased the target recipe revision."
         );
-	uint256 _value;
+        uint256 _value;
         address _currency =
           currency[
             _package][
@@ -346,7 +378,7 @@ contract UserRepository {
         if ( _currency == address(0) ) {
           _value =
             msg.value;
-	}
+        }
         else if ( _currency != address(0) ) {
           _value =
             _amount;
@@ -363,20 +395,22 @@ contract UserRepository {
             _publisher).transfer(
               _publisherShare);
           payable(
-	      deployer).transfer(
+            deployer).transfer(
                 _value - _publisherShare);
-	}
+        }
         else if ( _currency != address(0) ) {
           IERC20 _token = IERC20(
             _currency);
           require(
-            _token.transfer(
+            _token.transferFrom(
+              msg.sender,
               deployer,
               _value - _publisherShare),
             "Token transfer to the deployer failed."
           );
           require(
-            _token.transfer(
+            _token.transferFrom(
+              msg.sender,
               _publisher,
               _publisherShare),
             "Token transfer to the publisher failed."
