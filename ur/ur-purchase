@@ -44,8 +44,6 @@ _global_variables() {
   purchase_date=""
   ur_address=""
   ur_version=""
-  _libevm_global_variables
-  _libevm_app_global_variables
   cache_dir=""
   target_publisher=""
   target_package=""
@@ -802,6 +800,8 @@ _show_config() {
 _globals
 _global_variables
 _requirements
+_libevm_global_variables
+_libevm_app_global_variables
 # shellcheck disable=SC2034
 getopts_opts="$( \
   printf \
