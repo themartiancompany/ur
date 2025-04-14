@@ -433,12 +433,12 @@ contract UserRepository {
      * @param _package Package(s group) built by the recipe.
      * @param _publisher Package recipe publisher from which one is purchasing the recipe.
      * @param _revision Recipe revision to buy.
-     * @param _amount Amount of currency being approved.
      */
     function approvePurchaseRecipe(
       string memory _package,
       address _publisher,
-      uint256 _revision)
+      uint256 _revision,
+      address _receiver)
       public {
       bool _purchased =
         purchased[
