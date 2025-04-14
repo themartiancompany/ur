@@ -438,8 +438,7 @@ contract UserRepository {
     function approvePurchaseRecipe(
       string memory _package,
       address _publisher,
-      uint256 _revision,
-      uint256 _amount)
+      uint256 _revision)
       public {
       address _currency =
         currency[
@@ -447,17 +446,29 @@ contract UserRepository {
             _publisher][
               _revision];
       if ( _currency != address(0) ) {
+        address _amount =
+          price[
+            _package][
+              _publisher][
+                _revision];
         IERC20 _token =
           IERC20(
             _currency);
-        bool _approved =
-          _token.approve(
+        uint256 _allowance =
+          _token.allowance(
+            msg.sender,
             address(
-              this),
-            _amount);
-        if ( _approved == false ) {
-          revert(
-            "The approval wasn't executed correctly.");
+              this));
+        if ( _amount - _allowance >= 0 ) {
+          bool _approved =
+            _token.approve(
+              address(
+                this),
+              _amount - _allowance);
+          if ( _approved == false ) {
+            revert(
+              "The approval wasn't executed correctly.");
+	  }
 	}
       }
       else if ( _currency == address(0) ) {
