@@ -536,7 +536,7 @@ contract UserRepository {
             _token.allowance(
               msg.sender,
               address(
-                this);
+                this));
           if( _allowance < _value ) {
             revert(
               "The contract needs to be approved for the transaction.");
