@@ -315,11 +315,18 @@ contract UserRepository {
         scale);
     }
 
+    /**
+     * @dev Approve a package recipe purchase.
+     * @param _package Package(s group) built by the recipe.
+     * @param _publisher Package recipe publisher from which one is purchasing the recipe.
+     * @param _revision Recipe revision to buy.
+     * @param _amount Amount of currency being approved.
+     */
     function approvePurchaseRecipe(
-    string memory _package,
-    address _publisher,
-    uint256 _revision,
-    uint256 _amount)
+      string memory _package,
+      address _publisher,
+      uint256 _revision,
+      uint256 _amount)
     public
     payable {
       address _currency =
@@ -327,15 +334,16 @@ contract UserRepository {
           _package][
             _publisher][
               _revision];
-    if ( _currency != address(0) ) {
-          IERC20 _token = IERC20(
-            _currency);
-          require(
-            _token.approve(
-              deployer,
-              _amount),
-            "Token approval for the contract failed."
-          );
+      if ( _currency != address(0) ) {
+            IERC20 _token = IERC20(
+              _currency);
+            require(
+              _token.approve(
+                deployer,
+                _amount),
+              "Token approval for the contract failed."
+            );
+      }
     }
 
     /**
