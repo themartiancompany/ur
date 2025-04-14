@@ -21,22 +21,125 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-interface IERC20 { 
-  function approve(
-    address _delegate,
-    uint256 _amount)
-    external
-    pure
-    returns(
-      bool);
-  function transferFrom(
-    address _from,
-    address _to,
-    uint256 _amount)
-    external
-    pure
-    returns(
-      bool);
+//       bool);
+//   function transferFrom(
+//     address _from,
+//     address _to,
+//     uint256 _amount)
+//     external
+//     returns(
+//       bool);
+// }
+
+/**
+ * @dev Interface of the ERC20 standard as defined in the EIP.
+ */
+interface IERC20 {
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
+    function totalSupply()
+      external
+      view
+      returns(
+        uint256);
+
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     */
+    function balanceOf(
+      address account)
+      external
+      view
+      returns(
+        uint256);
+
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `recipient`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transfer(
+      address recipient,
+      uint256 amount)
+      external
+      returns(
+        bool);
+
+    /**
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
+     *
+     * This value changes when {approve} or {transferFrom} are called.
+     */
+    function allowance(
+      address owner,
+      address spender)
+      external
+      view
+      returns(
+        uint256);
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(
+      address spender,
+      uint256 amount)
+      external
+      returns(
+        bool);
+
+    /**
+     * @dev Moves `amount` tokens from `sender` to `recipient` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(
+      address sender,
+      address recipient,
+      uint256 amount)
+      external
+      returns(
+        bool);
+
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(
+      address indexed from,
+      address indexed to,
+      uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(
+      address indexed owner,
+      address indexed spender,
+      uint256 value);
 }
 
 /**
@@ -45,16 +148,26 @@ interface IERC20 {
  */
 contract UserRepository {
 
-    address public immutable deployer = 0xea02F564664A477286B93712829180be4764fAe2;
-    string public hijess = "urmylife";
-    string public version = "1.0";
-    uint256 public baseRepositoryRevenue = 5;
-    uint256 public mediumRepositoryRevenue = 10;
-    uint256 public fullRepositoryRevenue = 20;
-    uint256 public unit = 1000000000000000000;
-    uint256 public baseRevenueThreshold = unit;
-    uint256 public fullRevenueThreshold = 10 * unit;
-    uint256 public scale = 1000000000;
+    address public immutable deployer =
+      0xea02F564664A477286B93712829180be4764fAe2;
+    string public hijess =
+      "urmylife";
+    string public version =
+      "1.1";
+    uint256 public baseRepositoryRevenue =
+      5;
+    uint256 public mediumRepositoryRevenue =
+      10;
+    uint256 public fullRepositoryRevenue =
+      20;
+    uint256 public unit =
+      1000000000000000000;
+    uint256 public baseRevenueThreshold =
+      unit;
+    uint256 public fullRevenueThreshold =
+      10 * unit;
+    uint256 public scale =
+      1000000000;
 
     mapping(
       address => uint256 ) public packageNo;
@@ -241,7 +354,7 @@ contract UserRepository {
     }
 
     /**
-    * @dev Multiplies two numbers, throws on overflow.
+     * @dev Multiplies two numbers, throws on overflow.
      * @param a An integer.
      * @param b Another integer.
     */
@@ -261,10 +374,10 @@ contract UserRepository {
     }
 
     /**
-    * @dev Integer division of two numbers, truncating the quotient.
+     * @dev Integer division of two numbers, truncating the quotient.
      * @param a An integer.
      * @param b Another integer.
-    */
+     */
     function div(
       uint256 a,
       uint256 b)
@@ -279,10 +392,10 @@ contract UserRepository {
       return a / b;
     }
 
-     /**
-     * @dev Returns publisher share for the set price of a recipe revision.
-     * @param _amount A revision purchase price.
-     */
+    /**
+    * @dev Returns publisher share for the set price of a recipe revision.
+    * @param _amount A revision purchase price.
+    */
     function getPublisherShare(
       uint256 _amount)
     public
@@ -315,10 +428,8 @@ contract UserRepository {
         scale);
     }
 
-
-
     /**
-     * @dev Approve a package recipe purchase.
+     * @dev Approves a package recipe purchase.
      * @param _package Package(s group) built by the recipe.
      * @param _publisher Package recipe publisher from which one is purchasing the recipe.
      * @param _revision Recipe revision to buy.
@@ -329,16 +440,16 @@ contract UserRepository {
       address _publisher,
       uint256 _revision,
       uint256 _amount)
-    public
-    payable {
+      public {
       address _currency =
         currency[
           _package][
             _publisher][
               _revision];
       if ( _currency != address(0) ) {
-        IERC20 _token = IERC20(
-          _currency);
+        IERC20 _token =
+          IERC20(
+            _currency);
         _token.approve(
           address(
             this),
@@ -413,22 +524,33 @@ contract UserRepository {
                 _value - _publisherShare);
         }
         else if ( _currency != address(0) ) {
-          IERC20 _token = IERC20(
-            _currency);
-          require(
+          IERC20 _token =
+            IERC20(
+              _currency);
+	  uint256 _allowance =
+            _token.allowance(
+              msg.sender,
+              address(
+                this);
+          if( _allowance < _value ) {
+            revert(
+              "The contract needs to be approved for the transaction.");
+            }
+          bool _deployerSent =
             _token.transferFrom(
               msg.sender,
               deployer,
-              _value - _publisherShare),
-            "Token transfer to the deployer failed."
-          );
-          require(
-            _token.transferFrom(
-              msg.sender,
-              _publisher,
-              _publisherShare),
-            "Token transfer to the publisher failed."
-          );
+              _value - _publisherShare);
+          bool _publisherSent =
+          _token.transferFrom(
+            msg.sender,
+            _publisher,
+            _publisherShare);
+	  if ( _publisherSent == false ||
+               _deployerSent == false ) {
+            revert(
+              "The transactions weren't executed correctly.");
+	  }
         }
       }
       purchased[
