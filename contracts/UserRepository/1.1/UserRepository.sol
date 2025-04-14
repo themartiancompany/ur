@@ -450,10 +450,15 @@ contract UserRepository {
         IERC20 _token =
           IERC20(
             _currency);
-        _token.approve(
-          address(
-            this),
-          _amount);
+        bool _approved =
+          _token.approve(
+            address(
+              this),
+            _amount);
+        if ( _approved == false ) {
+          revert(
+            "The approval wasn't executed correctly.");
+	}
       }
       else if ( _currency == address(0) ) {
         require(
