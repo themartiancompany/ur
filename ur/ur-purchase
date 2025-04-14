@@ -622,6 +622,10 @@ _set_overrides() {
     "user" \
     "level" \
     "n"
+  _set_override \
+    "wallet" \
+    "name" \
+    "default"
   _deployments_dir_auto_detect \
     "ur" \
     "${user_level}"
@@ -633,7 +637,7 @@ _set_overrides() {
     "${target_network}"
   _wallet_overrides_set \
     "evm-wallet" \
-    "default" \
+    "${wallet_name}" \
     "y"
   _set_override \
     "cache" \
