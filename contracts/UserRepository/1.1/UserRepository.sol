@@ -457,7 +457,7 @@ contract UserRepository {
               _publisher][
                 _revision];
         if ( _currency != address(0) ) {
-          address _amount =
+          uint256 _amount =
             price[
               _package][
                 _publisher][
