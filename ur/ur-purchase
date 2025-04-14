@@ -453,7 +453,7 @@ _recipe_purchase() {
           evm-contract-call \
             "${_purchase_call_opts[@]}" \
             "${_ur_address}" \
-            "approvePurchaseRecipe" \
+            "approve" \
             "${_pkg}" \
             "${_publisher}" \
             "${_revision}" \
