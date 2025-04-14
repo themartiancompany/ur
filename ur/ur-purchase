@@ -442,8 +442,31 @@ _recipe_purchase() {
           "${_purchase}")"
     fi
     if [[ "${_purchase}" == "y" ]]; then
-      # evm-contract-call \
-      #   ""
+      if (( 0 < "${_revision_price}" )); then
+        if [[ "${_revision_currency}" != "${_address_null}" ]]; then
+          _msg=(
+            "Allowing the Ur to transfer from user"
+            "the funds to purchase package '${_pkg}'."
+          )
+          _msg_info \
+            "${_msg[*]}"
+          evm-contract-call \
+            "${_purchase_call_opts[@]}" \
+            "${_ur_address}" \
+            "approvePurchaseRecipe" \
+            "${_pkg}" \
+            "${_publisher}" \
+            "${_revision}" \
+            "${_recipient}"
+          _msg=(
+            "Permission to transfer from user"
+            "the funds to purchase package '${_pkg}'"
+            "approved."
+          )
+          _msg_info \
+            "${_msg[*]}"
+        fi
+      fi
       evm-contract-call \
         "${_purchase_call_opts[@]}" \
         "${_ur_address}" \

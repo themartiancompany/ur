@@ -429,69 +429,6 @@ contract UserRepository {
     }
 
     /**
-     * @dev Approves a package recipe purchase.
-     * @param _package Package(s group) built by the recipe.
-     * @param _publisher Package recipe publisher from which one is purchasing the recipe.
-     * @param _revision Recipe revision to buy.
-     */
-    function approvePurchaseRecipe(
-      string memory _package,
-      address _publisher,
-      uint256 _revision,
-      address _receiver)
-      public {
-      bool _purchased =
-        purchased[
-          _package][
-            _publisher][
-              _revision][
-                _receiver];
-      if ( msg.sender != _publisher ) {
-        require(
-          _purchased == false,
-          "The receiver has already purchased the target recipe revision."
-        );
-        address _currency =
-          currency[
-            _package][
-              _publisher][
-                _revision];
-        if ( _currency != address(0) ) {
-          uint256 _amount =
-            price[
-              _package][
-                _publisher][
-                  _revision];
-          IERC20 _token =
-            IERC20(
-              _currency);
-          uint256 _allowance =
-            _token.allowance(
-              msg.sender,
-              address(
-                this));
-          if ( _amount - _allowance >= 0 ) {
-            bool _approved =
-              _token.approve(
-                address(
-                  this),
-                _amount - _allowance);
-            if ( _approved == false ) {
-              revert(
-                "The approval wasn't executed correctly.");
-            }
-          }
-        }
-        else if ( _currency == address(0) ) {
-          require(
-            false,
-            "There is no need to approve a gas transaction."
-          );
-        }
-      }
-    }
-
-    /**
      * @dev Purchase a package recipe.
      * @param _package Package(s group) built by the recipe.
      * @param _publisher Package recipe publisher from which one is purchasing the recipe.
