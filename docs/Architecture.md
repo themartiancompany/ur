@@ -95,7 +95,14 @@ repositories are:
     the price, measured in wei, at which the
     application is being sold.
 
-The full contract source file is in
+For further informations about the application
+publishing process, in particular about
+revenue fees, consult the
+[`pub`](
+  https://github.com/themartiancompany/pub)
+manual.
+
+The full Solidity contract source file is in
 the `contracts/UserRepository/1.0` directory.
 
 #### Version 1.1
@@ -123,9 +130,27 @@ hackaton organized by
 [StackUp](
   hackaton.stackup.dev).
 
-The full contract source file is in
+The full Solidity contract source file is in
 the `contracts/UserRepository/1.1` directory.
 
-### PackagePublishers
+### `UserRepositoryPublishers`
 
-As 
+The `UserRepositoryPublishers` contract allows
+publishers and developers to sign up as such
+in order to have the list of their published applications
+browsable and indexed.
+
+#### Version 1.0
+
+It provides the basic facilities to let publishers
+sign up to the Repository.
+The contract requires publishers and developers
+to pay a one time 10 ethers gas units anti-spam 
+fee.
+
+So for example for the Ur Gnosis deployment
+the sign up fee is $10, while for the Dogechain
+deployment is 10 DOGE.
+
+The full Solidity contract source file is in
+the `contracts/UserRepositoryPublishers/1.0` directory.
