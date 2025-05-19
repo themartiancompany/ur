@@ -73,6 +73,12 @@ _requirements() {
     'evm-contracts-tools'
   _check_cmd \
     'evm-wallet'
+  _check_cmd \
+    "cat" \
+    "coreutils"
+  _check_cmd \
+    "sort" \
+    "coreutils"
 }
 
 _conf_dir_auto_detect() {
@@ -147,8 +153,11 @@ _work_dir_setup() {
 
 _packages_local_get() {
   local \
-    _db="${1}" \
-    _packages
+    _publisher="${1}" \
+    _packages \
+    _publisher_dir
+  _publisher_dir="${_cache_dir}/${_publisher}"
+  _db="${_publisher_dir}/packages.db"
   if [[ ! -e "${_db}" ]]; then
     mkdir \
       -p \
@@ -266,10 +275,9 @@ _packages_update() {
     )
     _msg_info \
       "${_msg[*]}"
-    _db="${_cache_dir}/${_publisher}/packages.db"
     _packages_local_total="$( \
       _packages_local_get \
-        "${_db}")"
+        "${_publisher}")"
     _msg=(
       "Locally are listed"
       "'${_packages_local_total}'"
@@ -621,7 +629,7 @@ $(_display_networks \
                             Default: ${api_key}
 
   app options:
-     -C <cache_dir>         Work directory.
+     -W <cache_dir>         Work directory.
                             Default: ${cache_dir}
      -H <gnupg_home>        GNUPG home directory.
                             Default: ${gnupg_home}
@@ -656,24 +664,28 @@ _display_flags() {
 _show_config() {
   _msg_info "${app_name} configuration"
   _msg_info "                Call date:   ${call_date}"
+  _msg_info "           Target command:   ${target_command}"
+  _msg_info "         Source publisher:   ${source_publisher}"
+  _msg_info "       Contract options:"
   _msg_info "       Repository address:   ${ur_address}"
   _msg_info "       Repository version:   ${ur_version}"
   _msg_info "       Publishers address:   ${up_address}"
   _msg_info "        Packagers address:   ${pp_address}"
-  _msg_info "               User level:   ${user_level}"
-  _msg_info "    Deployments directory:   ${deployments_dir}"
+  _msg_info "    Credentials options:"
   _msg_info "           Wallet address:   ${wallet_address}"
   _msg_info "              Wallet name:   ${wallet_name}"
   _msg_info "              Wallet path:   ${wallet_path}"
   _msg_info "          Wallet password:   ${wallet_password}"
   _msg_info "              Wallet seed:   ${wallet_seed}"
-  _msg_info "           Target network:   ${target_network}"
   _msg_info "                  API key:   ${api_key}"
+  _msg_info "         LibEVM options:"
+  _msg_info "               User level:   ${user_level}"
+  _msg_info "    Deployments directory:   ${deployments_dir}"
+  _msg_info "           Target network:   ${target_network}"
+  _msg_info "    Application options:"
   _msg_info "          Cache directory:   ${cache_dir}"
   _msg_info "          GNUPG directory:   ${gnupg_home}"
   _msg_info "  GNUPG private directory:   ${gnupg_private}"
-  _msg_info "         Source publisher:   ${source_publisher}"
-  _msg_info "           Target command:   ${target_command}"
 }
 
 _globals
@@ -682,38 +694,57 @@ _libevm_global_variables
 _libevm_app_global_variables
 _requirements
 # shellcheck disable=SC2034
+getopts_opts="$( \
+  printf \
+    "%s" \
+    "P:" \
+    "A:V:B:C:" \
+    "$(_libevm_app_getopts_params_get)" \
+    "a:n:" \
+    "$(_wallet_getopts_params_get)" \
+    "W:H:G:cvh")"
 while \
   getopts \
-    'A:V:B:C:ud:N:w:p:s:n:k:C:H:G:P:cvh?' \
+    "${getopts_opts}" \
     arg; do
+  _wallet_getopts_case
+  _libevm_app_getopts_case
   case \
     "${arg}" in
-    A) override_up_address="${OPTARG}" ;;
-    V) override_up_version="${OPTARG}" ;;
-    u) override_user_level="y" ;;
-    d) override_deployments_dir="${OPTARG}" ;;
-    N) override_wallet_name="${OPTARG}" ;;
-    w) override_wallet_path="${OPTARG}" ;;
-    p) override_wallet_password="${OPTARG}" ;;
-    s) override_wallet_seed="${OPTARG}" ;;
-    n) override_target_network="${OPTARG}" ;;
-    k) override_api_key="${OPTARG}" ;;
-    C) override_cache_dir="${OPTARG}" ;;
-    H) override_gnupg_home="${OPTARG}" ;;
-    G) override_gnupg_private="${OPTARG}" ;;
-    P) override_source_publisher="${OPTARG}" ;;
-    c) override_color="y" ;;
-    v) override_quiet="n" ;;
-    h|?) _set_overrides && \
-         _usage \
-           0 ;;
+    P) \
+      override_source_publisher="${OPTARG}" ;;
+    A) \
+      override_ur_address="${OPTARG}" ;;
+    V) \
+      override_ur_version="${OPTARG}" ;;
+    B) \
+      override_up_address="${OPTARG}" ;;
+    C) \
+      override_pp_address="${OPTARG}" ;;
+    n) \
+      override_target_network="${OPTARG}" ;;
+    W) \
+      override_cache_dir="${OPTARG}" ;;
+    H) \
+      override_gnupg_home="${OPTARG}" ;;
+    G) \
+      override_gnupg_private="${OPTARG}" ;;
+    c) \
+      override_color="y" ;;
+    v) \
+      override_quiet="n" ;;
+    h) \
+      _set_overrides && \
+      _usage \
+        0 ;;
     *)
-    _msg_error \
-      "Invalid argument '${arg}'" \
-      0
-    _usage \
-      1
-    ;;
+      if [[ " ${getopts_opts} " != *"${arg}"* ]]; then
+        _msg_error \
+          "Invalid argument '${arg}'." \
+          0
+        _usage \
+          1
+      fi ;;
   esac
 done
 shift \
@@ -722,17 +753,14 @@ shift \
   ))
 if (( $# < 1 )); then
   _msg_error \
-    "no command specified" \
+    "No command specified." \
     0
   _set_overrides
   _usage \
     1
 fi
 if (( 0 < $# )); then
-  _set \
-    "target" \
-    "command" \
-    "${1}"
+  target_command="${1}"
 fi
 shift \
   1 || \

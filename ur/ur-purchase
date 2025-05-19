@@ -44,8 +44,6 @@ _global_variables() {
   purchase_date=""
   ur_address=""
   ur_version=""
-  _libevm_global_variables
-  _libevm_app_global_variables
   cache_dir=""
   target_publisher=""
   target_package=""
@@ -93,8 +91,6 @@ _contract_call_opts_setup() {
   _contract_call_opts+=(
     -n
       "${_target_network}"
-    -N
-      "${_wallet_name}"
     -k
       "${_api_key_path}"
     -A
@@ -104,6 +100,30 @@ _contract_call_opts_setup() {
     -C
       "${_compiler_output}"
   )
+  if [[ "${_wallet_name}" != "" ]]; then
+    _contract_call_opts+=(
+      -N
+        "${_wallet_name}"
+    )
+  fi
+  if [[ "${_wallet_path}" != "" ]]; then
+    _contract_call_opts+=(
+      -w
+        "${_wallet_path}"
+    )
+  fi
+  if [[ "${_wallet_seed}" != "" ]]; then
+    _contract_call_opts+=(
+      -s
+        "${_wallet_seed}"
+    )
+  fi
+  if [[ "${_wallet_password}" != "" ]]; then
+    _contract_call_opts+=(
+      -p
+        "${_wallet_password}"
+    )
+  fi
 }
 
 _recipe_purchase_call_opts_setup() {
@@ -133,7 +153,7 @@ _work_dir_setup() {
   _tmp_dir="${_cache_dir}"
   _msg=(
     "setting up work directory"
-    "'${_tmp_dir}'"
+    "'${_tmp_dir}'."
   )
   _msg_info \
     "${_msg[*]}"
@@ -151,7 +171,7 @@ _revision_latest_get() {
     _msg=() \
     _revno
   _msg=(
-    "getting latest revision for"
+    "Getting latest revision for"
     "package '${_pkg}' and publisher"
     "'${_publisher}'."
   )
@@ -166,7 +186,7 @@ _revision_latest_get() {
       "${_publisher}")"
   if [[ "${_revno}" == "0" ]]; then
     _msg=(
-      "publisher '${_publisher}'"
+      "Publisher '${_publisher}'"
       "has published no '${_pkg}'"
       "package."
     )
@@ -177,14 +197,14 @@ _revision_latest_get() {
     _revision_latest="$(( \
       _revno - 1))"
     _msg=(
-      "latest revision for '${_pkg}'"
+      "Latest revision for '${_pkg}'"
       "is '${_revision_latest}'."
     )
     _msg_info \
       "${_msg[*]}"
   else
     _msg=(
-      "error while retrieving"
+      "Error while retrieving"
       "revision for package '${_pkg}'"
     )
     _msg_error \
@@ -201,7 +221,7 @@ _revision_price_get() {
     _revision="${4}" \
     _msg=()
   _msg=(
-    "getting price for revision '${_revision}'"
+    "Getting price for revision '${_revision}'"
     "of package '${_pkg}' by publisher"
     "'${_publisher}'."
   )
@@ -224,20 +244,44 @@ _revision_validate() {
     _msg=()
   if (( "${_revision}" < "${_revision_latest}" )); then
     _msg=(
-      "getting revision '${_revision}',"
+      "Getting revision '${_revision}',"
       "while latest is '${_revision_latest}'."
     )
     _msg_warning \
       "${_msg[*]}"
   elif (( "${_revision}" > "${_revision_latest}" )); then
     _msg=(
-      "trying to get revision '${_revision}',"
+      "Trying to get revision '${_revision}',"
       "while latest is '${_revision_latest}'."
     )
     _msg_error \
       "${_msg[*]}" \
       1
   fi
+}
+
+_revision_currency_get() {
+  local \
+    _ur_address="${1}" \
+    _publisher="${2}" \
+    _pkg="${3}" \
+    _revision="${4}" \
+    _msg=()
+  _msg=(
+    "Getting currency for revision '${_revision}'"
+    "of package '${_pkg}' by publisher"
+    "'${_publisher}'."
+  )
+  _msg_info \
+    "${_msg[*]}"
+  _revision_currency="$( \
+    evm-contract-call \
+      "${_data_call_opts[@]}" \
+      "${_ur_address}" \
+      "currency" \
+      "${_pkg}" \
+      "${_publisher}" \
+      "${_revision}")"
 }
 
 _price_validate() {
@@ -247,7 +291,7 @@ _price_validate() {
     _msg=()
   if (( "${_price}" < "${_price_revision}" )); then
     _msg=(
-      "trying to buy recipe for '${_price}',"
+      "Trying to buy recipe for '${_price}',"
       "wei but its set price"
       "is '${_price_revision}' wei."
       "Raising price to '${_price_revision}' wei." 
@@ -257,7 +301,7 @@ _price_validate() {
     _price="${_price_revision}"
   elif (( "${_price}" > "${_price_revision}" )); then
     _msg=(
-      "trying to buy recipe for for '${_price}'"
+      "Trying to buy recipe for for '${_price}'"
       "wei, while its set price"
       "is '${_price_revision}' wei."
     )
@@ -286,11 +330,15 @@ _recipe_purchase() {
     _purchase_call_opts=() \
     _revision_latest \
     _price_revision \
+    _revision_currency \
     _purchase \
-    _purchased
+    _purchased \
+    _address_null \
+    _amount
+  _address_null="0x0000000000000000000000000000000000000000"
   _recipe_purchase_call_opts_setup
   _msg=(
-    "purchasing revision '${_revision}'"
+    "Purchasing revision '${_revision}'"
     "of package '${_pkg}'"
     "from publisher '${_publisher}'"
     "for '${_price}' ${_measure_unit}."
@@ -338,30 +386,87 @@ _recipe_purchase() {
       "${_publisher}" \
       "${_pkg}" \
       "${_revision}"
+    if (( 0 < "${_price}" )); then
+      _msg=(
+        "Non-negative price, discovering"
+        "purchase currency."
+      )
+      _msg_info \
+        "${_msg[*]}"
+      _revision_currency_get \
+        "${_ur_address}" \
+        "${_publisher}" \
+        "${_pkg}" \
+        "${_revision}"
+    fi
     _price_validate \
       "${_price}" \
       "${_price_revision}"
-    _purchase_call_opts+=(
-      -V
-        "${_price}"
-      -u
-        "wei"
-    )
+    if [[ "${_revision_currency}" == "${_address_null}" ]]; then
+      _msg=(
+        "Purchase currency is network's gas."
+      )
+      _msg_info \
+        "${_msg[*]}"
+      _purchase_call_opts+=(
+        -V
+          "${_price}"
+        -u
+          "wei"
+      )
+      _amount="0"
+    elif [[ "${_revision_currency}" != "${_address_null}" ]]; then
+      _msg=(
+        "Purchase currency is '${_revision_currency}'."
+      )
+      _msg_info \
+        "${_msg[*]}"
+      _amount="${_price}"
+    fi
     if [[ "${_auto_confirm}" == "y" ]]; then
       _purchase="y"
     elif [[ "${_auto_confirm}" == "n" ]]; then
       _msg=(
-        "Purchase revision '${_revision}'" \
-        "of package '${_pkg}' by" \
-        "publisher '${_publisher}'" \
-        "at price '${_price}' wei? [y/N] "
+        "Purchase revision '${_revision}'"
+        "of package '${_pkg}' by"
+        "publisher '${_publisher}'"
+        "at price '${_price}' wei"
+        "in currency '${_revision_currency}'? [y/N] "
       )
       read \
         -p \
           "${_msg[*]}" \
         _purchase
+      _purchase="$( \
+        _lower \
+          "${_purchase}")"
     fi
     if [[ "${_purchase}" == "y" ]]; then
+      if (( 0 < "${_revision_price}" )); then
+        if [[ "${_revision_currency}" != "${_address_null}" ]]; then
+          _msg=(
+            "Allowing the Ur to transfer from user"
+            "the funds to purchase package '${_pkg}'."
+          )
+          _msg_info \
+            "${_msg[*]}"
+          evm-contract-call \
+            "${_purchase_call_opts[@]}" \
+            "${_ur_address}" \
+            "approve" \
+            "${_pkg}" \
+            "${_publisher}" \
+            "${_revision}" \
+            "${_recipient}"
+          _msg=(
+            "Permission to transfer from user"
+            "the funds to purchase package '${_pkg}'"
+            "approved."
+          )
+          _msg_info \
+            "${_msg[*]}"
+        fi
+      fi
       evm-contract-call \
         "${_purchase_call_opts[@]}" \
         "${_ur_address}" \
@@ -369,7 +474,8 @@ _recipe_purchase() {
         "${_pkg}" \
         "${_publisher}" \
         "${_revision}" \
-        "${_recipient}" 
+        "${_recipient}" \
+        "${_amount}"
       echo \
         "Revision correctly purchased."
     else
@@ -563,6 +669,10 @@ _set_overrides() {
     "user" \
     "level" \
     "n"
+  _set_override \
+    "wallet" \
+    "name" \
+    "default"
   _deployments_dir_auto_detect \
     "ur" \
     "${user_level}"
@@ -574,7 +684,7 @@ _set_overrides() {
     "${target_network}"
   _wallet_overrides_set \
     "evm-wallet" \
-    "default" \
+    "${wallet_name}" \
     "y"
   _set_override \
     "cache" \
@@ -686,7 +796,7 @@ $(_display_networks \
                             Default: ${api_key}
 
   app options:
-     -C <cache_dir>         Work directory.
+     -W <cache_dir>         Work directory.
                             Default: ${cache_dir}
 
      -h                     This message.
@@ -741,40 +851,58 @@ _show_config() {
 _globals
 _global_variables
 _requirements
+_libevm_global_variables
+_libevm_app_global_variables
 # shellcheck disable=SC2034
+getopts_opts="$( \
+  printf \
+    "%s" \
+    "r:P:m:yG:" \
+    "A:V:" \
+    "$(_libevm_app_getopts_params_get)" \
+    "n:" \
+    "$(_wallet_getopts_params_get)" \
+    "W:cvh")"
 while \
   getopts \
-    'r:P:m:yA:V:ud:N:w:p:s:n:k:C:H:G:cvh?' \
+    "${getopts_opts}" \
     arg; do
+  _wallet_getopts_case
+  _libevm_app_getopts_case
   case \
     "${arg}" in
-    r) override_target_recipient="${OPTARG}" ;;
-    P) override_target_price="${OPTARG}" ;;
-    m) override_measure_unit="${OPTARG}" ;;
-    y) override_auto_confirm="y" ;;
-    A) override_ur_address="${OPTARG}" ;;
-    V) override_ur_version="${OPTARG}" ;;
-    u) override_user_level="y" ;;
-    d) override_deployments_dir="${OPTARG}" ;;
-    N) override_wallet_name="${OPTARG}" ;;
-    w) override_wallet_path="${OPTARG}" ;;
-    p) override_wallet_password="${OPTARG}" ;;
-    s) override_wallet_seed="${OPTARG}" ;;
-    n) override_target_network="${OPTARG}" ;;
-    k) override_api_key="${OPTARG}" ;;
-    C) override_cache_dir="${OPTARG}" ;;
-    c) override_color="y" ;;
-    v) override_quiet="n" ;;
-    h|?) _set_overrides && \
-         _usage \
-           0 ;;
-    *)
-    _msg_error \
-      "Invalid argument '${arg}'" \
-      0
-    _usage \
-      1
-    ;;
+    r) \
+      override_target_recipient="${OPTARG}" ;;
+    P) \
+      override_target_price="${OPTARG}" ;;
+    m) \
+      override_measure_unit="${OPTARG}" ;;
+    y) \
+      override_auto_confirm="y" ;;
+    A) \
+      override_ur_address="${OPTARG}" ;;
+    V) \
+      override_ur_version="${OPTARG}" ;;
+    n) \
+      override_target_network="${OPTARG}" ;;
+    W) \
+      override_cache_dir="${OPTARG}" ;;
+    c) \
+      override_color="y" ;;
+    v) \
+      override_quiet="n" ;;
+    h) \
+      _set_overrides && \
+      _usage \
+        0 ;;
+    *) \
+      if [[ " ${getopts_opts} " != *"${arg}"* ]]; then
+        _msg_error \
+          "Invalid argument '${arg}'." \
+          0
+        _usage \
+          1
+      fi ;;
   esac
 done
 shift \
@@ -783,29 +911,20 @@ shift \
   ))
 if (( $# < 1 )); then
   _msg_error \
-    "no package given" \
+    "No package given." \
     0
   _set_overrides
   _usage \
     1
 fi
 if (( 0 < $# )); then
-  _set \
-    "target" \
-    "package" \
-    "${1}"
+  target_package="${1}"
 fi
 if (( 1 < $# )); then
-  _set \
-    "target" \
-    "publisher" \
-    "${2}"
+  target_publisher="${2}"
 fi
 if (( 2 < $# )); then
-  _set \
-    "target" \
-    "revision" \
-    "${3}"
+  target_revision="${3}"
 fi
 shift \
   3 || \
