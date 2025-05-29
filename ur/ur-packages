@@ -223,7 +223,8 @@ _packages_update() {
     _packages_new \
     _bound_lower \
     _bound_upper \
-    _skip_package
+    _skip_package \
+    _db
   _contract_artifacts_auto_detect \
     "${_deployments_dir}" \
     "${_target_network}" \
