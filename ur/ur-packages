@@ -262,6 +262,7 @@ _packages_update() {
     )
     _msg_info \
       "${_msg[*]}"
+    _db="${_cache_dir}/${_publisher}/packages.db"
     _packages_remote_total="$( \
       evm-contract-call \
         "${_packages_update_call_opts[@]}" \
