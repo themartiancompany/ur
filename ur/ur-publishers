@@ -111,11 +111,11 @@ _contract_call_opts_setup() {
     -k
       "${_api_key_path}"
     -A
-      "${_abi}"
+      "${_up_abi}"
     -B
-      "${_bytecode}"
+      "${_up_bytecode}"
     -C
-      "${_compiler_output}"
+      "${_up_compiler_output}"
   )
 }
 
@@ -274,9 +274,9 @@ _publishers_update() {
   local \
     _target_network="${1}" \
     _up_address="${2}" \
-    _abi="${3}" \
-    _bytecode="${4}" \
-    _compiler_output="${5}" \
+    _up_abi="${3}" \
+    _up_bytecode="${4}" \
+    _up_compiler_output="${5}" \
     _work_dir="${6}" \
     _gnupg_home="${7}" \
     _keys_update="${8}" \
