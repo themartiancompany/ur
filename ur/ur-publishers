@@ -139,6 +139,11 @@ _publisher_list_call_opts_setup() {
   local \
     _contract_call_opts=()
   _contract_call_opts_setup
+  if [[ "${quiet}" == "n" ]]; then
+    _publish_call_opts+=(
+      -v
+    )
+  fi
   _publish_call_opts+=(
     "${_contract_call_opts[@]}"
     -t
