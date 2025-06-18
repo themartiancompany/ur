@@ -803,6 +803,10 @@ _set_overrides() {
     "date" \
     "$(_get_date_human)"
   _set_override \
+    "wallet" \
+    "name" \
+    "default"
+  _set_override \
     "user" \
     "level" \
     "n"
@@ -817,7 +821,7 @@ _set_overrides() {
     "${target_network}"
   _wallet_overrides_set \
     "evm-wallet" \
-    "default" \
+    "${wallet_name}" \
     "y"
   _set_override \
     "cache" \
