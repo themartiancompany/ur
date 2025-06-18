@@ -617,7 +617,7 @@ _publisher_list() {
     _publish_call_opts+=(
       -V
         "${_enrolling_fee}"
-      -m
+      -u
         "wei"
     )
     _msg_info \
