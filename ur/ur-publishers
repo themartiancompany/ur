@@ -625,7 +625,7 @@ _publisher_list() {
     evm-contract-call \
       "${_publish_call_opts[@]}" \
       "${_up_address}" \
-      "listPackager" \
+      "listPublisher" \
       "${_target_address}"
   fi
 }
