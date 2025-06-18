@@ -650,7 +650,7 @@ _publisher_register() {
     _msg=()
   _msg=(
     "Registering publisher"
-    "'${_publisher}'."
+    "'${_target_address}'."
   )
   _msg_info \
     "${_msg[*]}"
@@ -775,7 +775,7 @@ _ur_publishers() {
       "${_gnupg_private}" \
       "${_key_publish}" \
       "${_user_name}" \
-      "${_fingerprint}" \
+      "${_key_fingerprint}" \
       "${_full_name}" \
       "${_target_address}"
   else
