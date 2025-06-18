@@ -661,7 +661,8 @@ _publisher_register() {
     "${_up_bytecode}" \
     "${_up_compiler_output}" \
     "${_work_dir}" \
-    "${_gnupg_home}"
+    "${_gnupg_home}" \
+    "${_keys_update}"
   _key_publish_check \
     "${_target_address}" \
     "${_user_name}" \
