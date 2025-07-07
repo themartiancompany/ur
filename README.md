@@ -27,7 +27,13 @@ unstoppable, User Repository and Application Store.
 ### Overview
 
 The Ur is an integral part of the OS-like software collection known
-as Life, and its main extension, DogeOS, and part of the Human
+as
+[Life](
+  https://github.com/themartiancompany/life-ur),
+and its main extension,
+[DogeOS](
+  https://github.com/themartiancompany/dogeos),
+and part of the Human
 Instrumentality Project (HIP).
 
 Formally speaking, the Ur is the set of programs and smart contracts
@@ -148,6 +154,13 @@ ur-packages \
 ur-packages \
   list
 ```
+
+A manually curated published packages
+list is currently kept at this
+[page](
+  https://github.com/orgs/themartiancompany/discussions/3)
+meanwhile that a browser application
+is not made available.
 
 #### Purchasing an application
 
