@@ -19,12 +19,14 @@
 [comment]: <> (License along with this program.)
 [comment]: <> (If not, see <https://www.gnu.org/licenses/>.)
 
-# Ur
+<center>
+  <img
+    src="https://raw.githubusercontent.com/themartiancompany/ur-data/30e54131f048ecead487672af28ffb197c030dd8/ur.png"
+    width="500"
+  />
+</center>
 
-<img
-  src="https://raw.githubusercontent.com/themartiancompany/ur-data/30e54131f048ecead487672af28ffb197c030dd8/ur.png"
-  width="500"
-/>
+# Ur
 
 Decentralized, distributed, permissionless, uncensorable, undeletable,
 unstoppable, User Repository and Application Store.
