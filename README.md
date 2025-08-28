@@ -21,6 +21,10 @@
 
 # Ur
 
+<img
+  src="data/ur.png"
+/>
+
 Decentralized, distributed, permissionless, uncensorable, undeletable,
 unstoppable, User Repository and Application Store.
 
