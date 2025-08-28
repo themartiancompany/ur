@@ -21,7 +21,7 @@
 
 <center>
   <img
-    src="https://raw.githubusercontent.com/themartiancompany/ur-data/30e54131f048ecead487672af28ffb197c030dd8/ur.png"
+    src="https://raw.githubusercontent.com/themartiancompany/ur-data/51ec1e6c159eca70103cadcb6c5c8f06aee893b4/ur.png"
     width="500"
   />
 </center>
