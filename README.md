@@ -19,12 +19,14 @@
 [comment]: <> (License along with this program.)
 [comment]: <> (If not, see <https://www.gnu.org/licenses/>.)
 
-<center>
+<div
+   style="text-align:
+            center">
   <img
     src="https://raw.githubusercontent.com/themartiancompany/ur-data/a115cf44cc5e4441a34f46a51ace090809572afd/ur.png"
     width="500"
   />
-</center>
+</div>
 
 # Ur
 
