@@ -22,7 +22,8 @@
 # Ur
 
 <img
-  src="data/ur.png"
+  src="https://raw.githubusercontent.com/themartiancompany/ur-data/30e54131f048ecead487672af28ffb197c030dd8/ur.png"
+  width="500"
 />
 
 Decentralized, distributed, permissionless, uncensorable, undeletable,
