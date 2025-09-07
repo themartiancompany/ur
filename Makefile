@@ -243,6 +243,9 @@ install-data:
 	$(_INSTALL_FILE) \
 	  "data/$(_PROJECT).png" \
 	  "$(ICONS_DIR)/$(_PROJECT).png"
+	$(_INSTALL_FILE) \
+	  "data/$(_PROJECT)-logo.png" \
+	  "$(ICONS_DIR)/$(_PROJECT)-logo.png"
 
 
 .PHONY: $(_PHONY_TARGETS)
