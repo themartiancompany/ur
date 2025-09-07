@@ -22,10 +22,12 @@
 PREFIX ?= /usr/local
 _PROJECT=ur
 SOLIDITY_COMPILER_BACKEND ?= solc
-DOC_DIR=$(DESTDIR)$(PREFIX)/share/doc/$(_PROJECT)
+DATA_DIR=$(DESTDIR)$(PREFIX)/share
+ICONS_DIR=$(DATA_DIR)/icons
+DOC_DIR=$(DATA_DIR)/doc/$(_PROJECT)
 BIN_DIR=$(DESTDIR)$(PREFIX)/bin
 LIB_DIR=$(DESTDIR)$(PREFIX)/lib/$(_PROJECT)
-MAN_DIR?=$(DESTDIR)$(PREFIX)/share/man
+MAN_DIR?=$(DATA_DIR)/man
 BUILD_DIR=build
 
 DOC_FILES=\
@@ -68,12 +70,14 @@ _INSTALL_DOC_TARGETS:=\
 _INSTALL_TARGETS:=\
   $(_INSTALL_DOC_TARGETS) \
   $(_INSTALL_CONTRACTS_TARGETS) \
-  install-scripts
+  install-scripts \
+  install-data
 _INSTALL_TARGETS_ALL:=\
   install \
   $(_INSTALL_DOC_TARGETS) \
   $(_INSTALL_CONTRACTS_TARGETS_ALL) \
-  install-scripts
+  install-scripts \
+  install-data
 _PHONY_TARGETS:=\
   $(_BUILD_TARGETS_ALL) \
   $(_CHECK_TARGETS_ALL) \
@@ -233,5 +237,12 @@ install-scripts:
 	$(_INSTALL_EXE) \
 	  "$(_PROJECT)/gen_pacman_conf.sh" \
 	  "$(LIB_DIR)/gen_pacman_conf"
+
+install-data:
+
+	$(_INSTALL_FILE) \
+	  "data/$(_PROJECT).png" \
+	  "$(ICONS_DIR)/$(_PROJECT).png"
+
 
 .PHONY: $(_PHONY_TARGETS)
