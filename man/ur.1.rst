@@ -80,9 +80,9 @@ Options
 -P package_publisher   Package publisher.
 -r target_revision     Package target revision.
 -w work_dir            Work directory.
--b y/n                 Whether to run the program
+-b <y/n>               Whether to run the program
                        after installed.
--d y/n                 Whether to skip dependencies
+-d <y/n>               Whether to skip dependencies
                        check when installing.
 
 -h                     Displays help message.
