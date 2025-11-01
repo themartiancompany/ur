@@ -302,7 +302,7 @@ _set_overrides() {
     "path" \
     "$(_wallet_path_get \
          "evm-wallet" \
-         "${wallet_name}"
+         "${wallet_name}")"
   _secret_auto_detect \
     "seed" \
     "seed" \
