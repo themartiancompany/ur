@@ -75,3 +75,5 @@ you see the recipes are regular Arch Linux `PKGBUILD`s.
 While foreseen in a future release, recipe compatibility
 with packagement systems such as `dpkg` and `rpm` is
 currently not implemented.
+
+Contributions are welcome.
