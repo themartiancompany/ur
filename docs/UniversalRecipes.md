@@ -68,4 +68,10 @@ HIP component installed.
 Whenever this retro-compatibility requirement
 can be omitted, for example for all the software
 which is not distributed through HTTP mirrors,
-you see the recipes are basically identical.
+you see the recipes are regular Arch Linux `PKGBUILD`s.
+
+### Compatibility with non-Pacman based runtime environment
+
+While foreseen in a future release, recipe compatibility
+with packagement systems such as `dpkg` and `rpm` is
+currently not implemented.
