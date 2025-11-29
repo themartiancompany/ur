@@ -53,6 +53,7 @@ _global_variables() {
   gnupg_private=""
   source_publisher=""
   target_package=""
+  target_command=""
   target_revision=""
   info_type=""
   command_args=()
@@ -203,6 +204,37 @@ _package_name_check() {
   fi
 }
 
+_pkgbase_new_check() {
+  local \
+    _db="${1}" \
+    _pkgbase="${2}" \
+    _grep_opts=()
+  _grep_opts+=(
+    -c
+    -e
+      "^${_pkgbase}$"
+  )
+  _new="$( \
+    cat \
+      "${_db}" | \
+      grep \
+        "${_grep_opts[@]}")"
+  if [[ "${_new}" == "0" ]]; then
+    _pkgbase_new="true"
+  elif [[ "${_new}" == "1" ]]; then
+    _pkgbase_new="false"
+  elif (( 1 < "${_new}" )); then
+    _msg=(
+      "Found more than an"
+      "entry for package"
+      "'${_pkgbase}'".
+    )
+    _msg_error \
+      "${_msg[*]}" \
+      1
+  fi
+}
+
 _packages_update() {
   local \
     _ur_address="${1}" \
@@ -328,10 +360,23 @@ _packages_update() {
         _package_name_check \
           "${_package_name}"
         if [[ "${_skip_package}" == "false" ]]; then
-          printf \
-            '%s\n' \
-            "${_package_name}" >> \
-            "${_db}"
+          _pkgbase_new_check \
+            "${_db}" \
+            "${_package_name}"
+          if [[ "${_pkgbase_new}" == "true" ]]; then
+            printf \
+              '%s\n' \
+              "${_package_name}" >> \
+              "${_db}"
+          elif [[ "${_pkgbase_new}" == "false" ]]; then
+            _msg=(
+              "Package '${_package_name}'"
+              "already present in the local"
+              "database."
+            )
+            _msg_info \
+              "${_msg[*]}"
+          fi
         elif [[ "${_skip_package}" == "true" ]]; then
           # I think it makes sense for now to have
           # a 1-to-1 line-to-package correspondence.
