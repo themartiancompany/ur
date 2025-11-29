@@ -50,3 +50,22 @@ compatible with many operating systems or platforms at once.
 For Termux it is instead currently under evaluation
 [merging the Tur into the Ur](
   https://github.com/termux-user-repository/tur/issues/1486).
+
+### Examples
+
+For an updated reference Universal Recipe `PKGBUILD` you
+can consult the one for the
+[`evmfs`](
+  https://github.com/themartiancompany/evmfs-ur).
+
+As you notice most of the extra code compared
+to a regular `PKGBUILD` is exclusively relative
+to mantaining the recipe compatible with systems who do not
+have available the `evmfs` command, so
+one of the vanilla base operating systems without any
+HIP component installed.
+
+Whenever this retro-compatibility requirement
+can be omitted, for example for all the software
+which is not distributed through HTTP mirrors,
+you see the recipes are basically identical.
