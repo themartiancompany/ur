@@ -258,6 +258,7 @@ _revision_price_save(){
     _dest_dir
   _dest_dir="$(
     _revision_dir_get)"
+  echo "${_dest_dir}"
   mkdir \
     -p \
     "${_dest_dir}"
@@ -297,9 +298,9 @@ _revision_price_get() {
     "$@"
   )
   _update="${_update_force}"
-  _revision_dir="$(
-    _revision_dir_get)"
   for _revision in "${_revisions[@]}"; do
+    _revision_dir="$(
+      _revision_dir_get)"
     if [[ ! -e "${_revision_dir}/price" ]]; then
       _update="y"
       _contract_artifacts_auto_detect \
@@ -313,13 +314,13 @@ _revision_price_get() {
     fi
   done
   for _revision in "${_revisions[@]}"; do
-    _msg=(
-      "Getting price for revision"
-      "'${_revision}'."
-    )
-    _msg_info \
-      "${_msg[*]}"
-    if [[ "${_update_force}" == "y" ]]; then
+    if [[ "${_update}" == "y" ]]; then
+      _msg=(
+        "Getting price for revision"
+        "'${_revision}'."
+      )
+      _msg_info \
+        "${_msg[*]}"
       _price="$(
         evm-contract-call \
           "${_prices_call_opts[@]}" \
@@ -336,6 +337,7 @@ _revision_price_get() {
           "${_price}"
       fi
     else
+      echo "ciao"
       _price="$(
         _revision_price_local_get \
           "${_package}" \
