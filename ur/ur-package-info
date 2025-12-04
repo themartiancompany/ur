@@ -317,8 +317,9 @@ _revision_price_get() {
         "${_revision}")"
     if [[ "${_measure_unit}" == "ether" ]]; then
       _price="$(
-        ether2wei \
-          "${_price}")"
+        echo \
+          "scale=18;${_price} / 1000000000000000000" | \
+          bc)"
     fi
     _prices+=(
       "${_price}"
@@ -328,7 +329,6 @@ _revision_price_get() {
     "%s\n" \
     "${_prices[@]}"
 }
-
 
 _ur_package_info() {
   local \
@@ -399,14 +399,14 @@ _ur_package_info() {
       _msg=(
         "Target revision not selected,"
         "showing prices for all available"
-        "'$((${_revisions_total} + 1))' revisions."
+        "'${_revisions_total}' revisions."
       )
       _msg_warning \
         "${_msg[*]}"
       _revisions=( $(
         seq \
           "0" \
-          "${_revisions_total}")
+          "$(("${_revisions_total}" - 1))")
       )
     elif [[ "${_target_revision}" == "latest" ]]; then
       _revisions=(
