@@ -52,6 +52,7 @@ _global_variables() {
   gnupg_home=""
   gnupg_private=""
   source_publisher=""
+  measure_unit=""
   target_package=""
   target_revision=""
   info_type=""
@@ -125,6 +126,48 @@ _publishers_call_opts_setup() {
       "static"
   )
 }
+
+_revisions_call_opts_setup() {
+  local \
+    _contract_call_opts=()
+  _contract_call_opts_setup \
+    "${_ur_abi}" \
+    "${_ur_bytecode}" \
+    "${_ur_compiler_output}"
+  _revisions_call_opts+=(
+    "${_contract_call_opts[@]}"
+    -t
+      "static"
+  )
+}
+
+_prices_call_opts_setup() {
+  local \
+    _contract_call_opts=()
+  _contract_call_opts_setup \
+    "${_ur_abi}" \
+    "${_ur_bytecode}" \
+    "${_ur_compiler_output}"
+  _prices_call_opts+=(
+    "${_contract_call_opts[@]}"
+    -t
+      "static"
+  )
+}
+evisions_call_opts_setup() {
+  local \
+    _contract_call_opts=()
+  _contract_call_opts_setup \
+    "${_ur_abi}" \
+    "${_ur_bytecode}" \
+    "${_ur_compiler_output}"
+  _revisions_call_opts+=(
+    "${_contract_call_opts[@]}"
+    -t
+      "static"
+  )
+}
+
 
 _work_dir_setup() {
   local \
@@ -210,8 +253,82 @@ _package_publishers_get() {
 
 _package_revisions_get() {
   local \
-    _revision_call_opts=()
+    _package="${1}" \
+    _target_publisher="${2}" \
+    _publishers_total \
+    _revisions_call_opts=() \
+    _ur_abi \
+    _ur_bytecode \
+    _ur_compiler_output
+  _contract_artifacts_auto_detect \
+    "${_deployments_dir}" \
+    "${_target_network}" \
+    "UserRepository" \
+    "_ur" \
+    "${_ur_version}"
+  _revisions_call_opts_setup 
+  _revisions_total="$(
+    evm-contract-call \
+      "${_revisions_call_opts[@]}" \
+      "${_ur_address}" \
+      "revNo" \
+      "${_package}" \
+      "${_target_publisher}")"
 }
+
+_revision_price_get() {
+  local \
+    _package="${1}" \
+    _target_publisher="${2}" \
+    _msg=() \
+    _revision \
+    _revisions=() \
+    _prices_call_opts=() \
+    _price \
+    _ur_abi \
+    _ur_bytecode \
+    _ur_compiler_output
+  shift \
+    2
+  _revisions+=(
+    "$@"
+  )
+  _contract_artifacts_auto_detect \
+    "${_deployments_dir}" \
+    "${_target_network}" \
+    "UserRepository" \
+    "_ur" \
+    "${_ur_version}"
+  _prices_call_opts_setup 
+  for _revision in "${_revisions[@]}"; do
+    _msg=(
+      "Getting price for revision"
+      "'${_revision}'."
+    )
+    _msg_info \
+      "${_msg[*]}"
+    _price="$(
+      evm-contract-call \
+        "${_prices_call_opts[@]}" \
+        "${_ur_address}" \
+        "price" \
+        "${_package}" \
+        "${_target_publisher}" \
+        "${_revision}")"
+    if [[ "${_measure_unit}" == "ether" ]]; then
+      _price="$(
+        ether2wei \
+          "${_price}")"
+    fi
+    _prices+=(
+      "${_price}"
+    )
+  done
+  printf \
+    "%s\n" \
+    "${_prices[@]}"
+}
+
 
 _ur_package_info() {
   local \
@@ -235,14 +352,18 @@ _ur_package_info() {
     _target_package="${18}" \
     _target_revision="${19}" \
     _info_type="${20}" \
+    _measure_unit="${21}" \
     _ur_publishers_opts=() \
     _command_args=() \
     _cmd \
     _args=() \
     _msg=() \
-    _publishers=()
+    _publishers=() \
+    _revisions_total \
+    _revisions=() \
+    _prices=()
   shift \
-    20
+    21
   _command_args+=(
     "$@"
   )
@@ -262,12 +383,44 @@ _ur_package_info() {
       "${_ur_address}" \
       "${_up_address}" \
       "${_target_package}"
-    for _publisher in "${_publishers[@]}"; do
-      echo
-    done
   fi
-  if [[ "${_info_type}" == "" ]]; then
-    echo
+  if [[ "${_info_type}" == "revisions" ]]; then
+    _package_revisions_get \
+      "${_target_package}" \
+      "${_source_publisher}"
+    echo \
+      "${_revisions_total}"
+  fi
+  if [[ "${_info_type}" == "prices" ]]; then
+    _package_revisions_get \
+      "${_target_package}" \
+      "${_source_publisher}"
+    if [[ "${_target_revision}" == "" ]]; then
+      _msg=(
+        "Target revision not selected,"
+        "showing prices for all available"
+        "'$((${_revisions_total} + 1))' revisions."
+      )
+      _msg_warning \
+        "${_msg[*]}"
+      _revisions=( $(
+        seq \
+          "0" \
+          "${_revisions_total}")
+      )
+    elif [[ "${_target_revision}" == "latest" ]]; then
+      _revisions=(
+        "${_revisions_total}"
+      )
+    else
+      _revisions=(
+        "${_target_revision}"
+      )
+    fi
+    _revision_price_get \
+      "${_target_package}" \
+      "${_source_publisher}" \
+      "${_revisions[@]}"
   fi
 }
 
@@ -362,6 +515,10 @@ _set_overrides() {
     "info" \
     "type" \
     "publishers"
+  _set_override \
+    "measure" \
+    "unit" \
+    "ether"
 }
 
 # Show help usage, with an exit status.
@@ -402,8 +559,15 @@ $(_display_networks \
                             Default: ${source_publisher}
      -r <revision>          Target package revision.
                             Default: ${target_revision}
-     -i <info_type>         It can be 'publishers'.
+     -i <info_type>         It can be 'publishers',
+                            'revisions', 'prices'.
                             Default: ${info_type}
+
+  display options:
+     -m <measure-unit>      Measure unit for the network
+                            currency. It can be 'ether'
+                            and 'wei'.
+                            Default: ${measure_unit}
 
   contract options:
      -A <ur_address>        Address of the 'User Repository'
@@ -478,27 +642,33 @@ _display_flags() {
 # Shows configuration options.
 _show_config() {
   _msg_info "${app_name} configuration"
-  _msg_info "                Call date:   ${call_date}"
-  _msg_info "       Repository address:   ${ur_address}"
-  _msg_info "       Repository version:   ${ur_version}"
-  _msg_info "       Publishers address:   ${up_address}"
-  _msg_info "        Packagers address:   ${pp_address}"
-  _msg_info "               User level:   ${user_level}"
-  _msg_info "    Deployments directory:   ${deployments_dir}"
-  _msg_info "           Wallet address:   ${wallet_address}"
-  _msg_info "              Wallet name:   ${wallet_name}"
-  _msg_info "              Wallet path:   ${wallet_path}"
-  _msg_info "          Wallet password:   ${wallet_password}"
-  _msg_info "              Wallet seed:   ${wallet_seed}"
-  _msg_info "           Target network:   ${target_network}"
-  _msg_info "                  API key:   ${api_key}"
-  _msg_info "          Cache directory:   ${cache_dir}"
-  _msg_info "          GNUPG directory:   ${gnupg_home}"
-  _msg_info "  GNUPG private directory:   ${gnupg_private}"
-  _msg_info "         Source publisher:   ${source_publisher}"
-  _msg_info "           Target package:   ${target_package}"
-  _msg_info "          Target revision:   ${target_revision}"
-  _msg_info "                Info type:   ${info_type}"
+  _msg_info "                      Call date:   ${call_date}"
+  _msg_info "                 Target package:   ${target_package}"
+  _msg_info "               Source publisher:   ${source_publisher}"
+  _msg_info "                Target revision:   ${target_revision}"
+  _msg_info "                      Info type:   ${info_type}"
+  _msg_info "              Display options:"
+  _msg_info "                   Measure unit:   ${measure_unit}"
+  _msg_info "             Contract options:"
+  _msg_info "             Repository address:   ${ur_address}"
+  _msg_info "             Repository version:   ${ur_version}"
+  _msg_info "             Publishers address:   ${up_address}"
+  _msg_info "              Packagers address:   ${pp_address}"
+  _msg_info "   LibEVM application options:"
+  _msg_info "                     User level:   ${user_level}"
+  _msg_info "          Deployments directory:   ${deployments_dir}"
+  _msg_info "                Target networks:   ${target_networks[*]}"
+  _msg_info "          Credentials options:"
+  _msg_info "                    Wallet name:   ${wallet_name}"
+  _msg_info "                 Wallet address:   ${wallet_address}"
+  _msg_info "                    Wallet path:   ${wallet_path}"
+  _msg_info "                Wallet password:   ${wallet_password}"
+  _msg_info "                    Wallet seed:   ${wallet_seed}"
+  _msg_info "                        API key:   ${api_key}"
+  _msg_info "          Application options:"
+  _msg_info "                Cache directory:   ${cache_dir}"
+  _msg_info "                GNUPG directory:   ${gnupg_home}"
+  _msg_info "        GNUPG private directory:   ${gnupg_private}"
 }
 
 _globals
@@ -507,40 +677,55 @@ _libevm_global_variables
 _libevm_app_global_variables
 _requirements
 # shellcheck disable=SC2034
+getopts_opts="$( \
+  printf \
+    "%s" \
+    "P:r:i:" \
+    "A:V:" \
+    "$(_libevm_app_getopts_params_get)" \
+    "n:" \
+    "$(_wallet_getopts_params_get)" \
+    "G:H:W:cvh")"
 while \
   getopts \
-    'A:V:B:C:ud:N:w:p:s:n:k:C:H:G:P:r:i:cvh?' \
+    "${getopts_opts}" \
     arg; do
+  _wallet_getopts_case
+  _libevm_app_getopts_case
   case \
     "${arg}" in
-    A) override_up_address="${OPTARG}" ;;
-    V) override_up_version="${OPTARG}" ;;
-    u) override_user_level="y" ;;
-    d) override_deployments_dir="${OPTARG}" ;;
-    N) override_wallet_name="${OPTARG}" ;;
-    w) override_wallet_path="${OPTARG}" ;;
-    p) override_wallet_password="${OPTARG}" ;;
-    s) override_wallet_seed="${OPTARG}" ;;
-    n) override_target_network="${OPTARG}" ;;
-    k) override_api_key="${OPTARG}" ;;
-    C) override_cache_dir="${OPTARG}" ;;
-    H) override_gnupg_home="${OPTARG}" ;;
-    G) override_gnupg_private="${OPTARG}" ;;
-    P) override_source_publisher="${OPTARG}" ;;
-    r) override_target_revision="${OPTARG}" ;;
-    i) override_info_type="${OPTARG}" ;;
-    c) override_color="y" ;;
-    v) override_quiet="n" ;;
-    h|?) _set_overrides && \
-         _usage \
-           0 ;;
+    P)
+      override_source_publisher="${OPTARG}" ;;
+    r)
+      override_target_revision="${OPTARG}" ;;
+    i)
+      override_info_type="${OPTARG}" ;;
+    A)
+      override_up_address="${OPTARG}" ;;
+    V)
+      override_up_version="${OPTARG}" ;;
+    n)
+      override_target_network="${OPTARG}" ;;
+    W)
+      override_cache_dir="${OPTARG}" ;;
+    H)
+      override_gnupg_home="${OPTARG}" ;;
+    G)
+      override_gnupg_private="${OPTARG}" ;;
+    c)
+      override_color="y" ;;
+    v)
+      override_quiet="n" ;;
+    h|?)
+      _set_overrides
+      _usage \
+        0 ;;
     *)
-    _msg_error \
-      "Invalid argument '${arg}'" \
-      0
-    _usage \
-      1
-    ;;
+      _msg_error \
+        "Invalid argument '${arg}'" \
+        0
+      _usage \
+        1 ;;
   esac
 done
 shift \
@@ -548,18 +733,18 @@ shift \
     OPTIND - 1 \
   ))
 if (( $# < 1 )); then
+  _msg=(
+    "No package specified."
+  )
   _msg_error \
-    "no package specified" \
+    "${_msg[*]}" \
     0
   _set_overrides
   _usage \
     1
 fi
 if (( 0 < $# )); then
-  _set \
-    "target" \
-    "package" \
-    "${1}"
+  target_package="${1}"
 fi
 shift \
   1 || \
@@ -590,6 +775,7 @@ app_opts=(
   "${target_package}"
   "${target_revision}"
   "${info_type}"
+  "${measure_unit}"
 )
 _ur_package_info \
   "${app_opts[@]}"
