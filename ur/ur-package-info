@@ -56,6 +56,7 @@ _global_variables() {
   target_package=""
   target_revision=""
   info_type=""
+  update_force=""
   command_args=()
   color=""
   quiet=""
@@ -154,39 +155,6 @@ _prices_call_opts_setup() {
       "static"
   )
 }
-evisions_call_opts_setup() {
-  local \
-    _contract_call_opts=()
-  _contract_call_opts_setup \
-    "${_ur_abi}" \
-    "${_ur_bytecode}" \
-    "${_ur_compiler_output}"
-  _revisions_call_opts+=(
-    "${_contract_call_opts[@]}"
-    -t
-      "static"
-  )
-}
-
-
-_work_dir_setup() {
-  local \
-    _msg=()
-  _tmp_dir="${_cache_dir}"
-  _msg=(
-    "setting up work directory"
-    "'${_tmp_dir}'"
-  )
-  _msg_info \
-    "${_msg[*]}"
-  mkdir \
-    -p \
-    "${_tmp_dir}/gnupg"
-  chmod \
-    -R \
-    700 \
-    "${_tmp_dir}"
-}
 
 _package_publishers_get() {
   local \
@@ -276,6 +244,40 @@ _package_revisions_get() {
       "${_target_publisher}")"
 }
 
+_revision_dir_get() {
+  echo \
+    "${_cache_dir}/packages/${_target_publisher}/${_package}/${_revision}"
+}
+
+_revision_price_save(){
+  local \
+    _package="${1}" \
+    _target_publisher="${2}" \
+    _revision="${3}" \
+    _price="${4}" \
+    _dest_dir
+  _dest_dir="$(
+    _revision_dir_get)"
+  mkdir \
+    -p \
+    "${_dest_dir}"
+  echo \
+    "${_price}" > \
+    "${_dest_dir}/price"
+}
+
+_revision_price_local_get() {
+  local \
+    _package="${1}" \
+    _target_publisher="${2}" \
+    _revision="${3}" \
+    _revision_dir
+  _revision_dir="$(
+    _revision_dir_get)"
+  cat \
+    "${_revision_dir}/price"
+}
+
 _revision_price_get() {
   local \
     _package="${1}" \
@@ -287,19 +289,29 @@ _revision_price_get() {
     _price \
     _ur_abi \
     _ur_bytecode \
-    _ur_compiler_output
+    _ur_compiler_output \
+    _update
   shift \
     2
   _revisions+=(
     "$@"
   )
-  _contract_artifacts_auto_detect \
-    "${_deployments_dir}" \
-    "${_target_network}" \
-    "UserRepository" \
-    "_ur" \
-    "${_ur_version}"
-  _prices_call_opts_setup 
+  _update="${_update_force}"
+  _revision_dir="$(
+    _revision_dir_get)"
+  for _revision in "${_revisions[@]}"; do
+    if [[ ! -e "${_revision_dir}/price" ]]; then
+      _update="y"
+      _contract_artifacts_auto_detect \
+        "${_deployments_dir}" \
+        "${_target_network}" \
+        "UserRepository" \
+        "_ur" \
+        "${_ur_version}"
+      _prices_call_opts_setup 
+      break
+    fi
+  done
   for _revision in "${_revisions[@]}"; do
     _msg=(
       "Getting price for revision"
@@ -307,14 +319,29 @@ _revision_price_get() {
     )
     _msg_info \
       "${_msg[*]}"
-    _price="$(
-      evm-contract-call \
-        "${_prices_call_opts[@]}" \
-        "${_ur_address}" \
-        "price" \
-        "${_package}" \
-        "${_target_publisher}" \
-        "${_revision}")"
+    if [[ "${_update_force}" == "y" ]]; then
+      _price="$(
+        evm-contract-call \
+          "${_prices_call_opts[@]}" \
+          "${_ur_address}" \
+          "price" \
+          "${_package}" \
+          "${_target_publisher}" \
+          "${_revision}")"
+      if [[ "${_price}" != "" ]]; then
+        _revision_price_save \
+          "${_package}" \
+          "${_target_publisher}" \
+          "${_revision}" \
+          "${_price}"
+      fi
+    else
+      _price="$(
+        _revision_price_local_get \
+          "${_package}" \
+          "${_target_publisher}" \
+          "${_revision}")"
+    fi
     if [[ "${_measure_unit}" == "ether" ]]; then
       _price="$(
         echo \
@@ -353,6 +380,7 @@ _ur_package_info() {
     _target_revision="${19}" \
     _info_type="${20}" \
     _measure_unit="${21}" \
+    _update_force="${22}" \
     _ur_publishers_opts=() \
     _command_args=() \
     _cmd \
@@ -363,7 +391,7 @@ _ur_package_info() {
     _revisions=() \
     _prices=()
   shift \
-    21
+    22
   _command_args+=(
     "$@"
   )
@@ -519,6 +547,10 @@ _set_overrides() {
     "measure" \
     "unit" \
     "ether"
+  _set_override \
+    "update" \
+    "force" \
+    "n"
 }
 
 # Show help usage, with an exit status.
@@ -562,6 +594,9 @@ $(_display_networks \
      -i <info_type>         It can be 'publishers',
                             'revisions', 'prices'.
                             Default: ${info_type}
+     -y                     Forces retrieving the information
+                            from the network rather than locally.
+                            Default: ${update_force}
 
   display options:
      -m <measure-unit>      Measure unit for the network
@@ -608,7 +643,7 @@ $(_display_networks \
                             Default: ${api_key}
 
   app options:
-     -C <cache_dir>         Work directory.
+     -W <cache_dir>         Work directory.
                             Default: ${cache_dir}
      -H <gnupg_home>        GNUPG home directory.
                             Default: ${gnupg_home}
@@ -647,6 +682,7 @@ _show_config() {
   _msg_info "               Source publisher:   ${source_publisher}"
   _msg_info "                Target revision:   ${target_revision}"
   _msg_info "                      Info type:   ${info_type}"
+  _msg_info "              Force info update:   ${update_force}"
   _msg_info "              Display options:"
   _msg_info "                   Measure unit:   ${measure_unit}"
   _msg_info "             Contract options:"
@@ -680,7 +716,7 @@ _requirements
 getopts_opts="$( \
   printf \
     "%s" \
-    "P:r:i:" \
+    "P:r:i:y" \
     "A:V:" \
     "$(_libevm_app_getopts_params_get)" \
     "n:" \
@@ -700,6 +736,8 @@ while \
       override_target_revision="${OPTARG}" ;;
     i)
       override_info_type="${OPTARG}" ;;
+    y)
+      override_update_force="y" ;;
     A)
       override_up_address="${OPTARG}" ;;
     V)
@@ -776,6 +814,7 @@ app_opts=(
   "${target_revision}"
   "${info_type}"
   "${measure_unit}"
+  "${update_force}"
 )
 _ur_package_info \
   "${app_opts[@]}"
