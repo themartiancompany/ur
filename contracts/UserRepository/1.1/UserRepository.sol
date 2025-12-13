@@ -183,6 +183,10 @@ contract UserRepository {
     mapping(
       string => mapping(
         address => mapping(
+          uint256 => uint256 ) ) ) public epoch;
+    mapping(
+      string => mapping(
+        address => mapping(
           uint256 => string ) ) ) public recipe;
     mapping(
       string => mapping(

@@ -181,10 +181,9 @@ _package_name_check() {
   local \
     _pkg_name="${1}" \
     _extra_chars \
-    _msg=() \
-    _skip_packages
+    _msg=()
   _skip_package="false"
-  _extra_chars="$( \
+  _extra_chars="$(
     echo \
       "${_pkg_name}" | \
       sed \
@@ -202,6 +201,7 @@ _package_name_check() {
       "${_msg[*]}"
     _skip_package="true"
   fi
+  return 0
 }
 
 _pkgbase_new_check() {
@@ -218,7 +218,8 @@ _pkgbase_new_check() {
     cat \
       "${_db}" | \
       grep \
-        "${_grep_opts[@]}")"
+        "${_grep_opts[@]}" || \
+      true)"
   if [[ "${_new}" == "0" ]]; then
     _pkgbase_new="true"
   elif [[ "${_new}" == "1" ]]; then
@@ -363,6 +364,7 @@ _packages_update() {
           _pkgbase_new_check \
             "${_db}" \
             "${_package_name}"
+           _msg_info "ciao"
           if [[ "${_pkgbase_new}" == "true" ]]; then
             printf \
               '%s\n' \
@@ -381,12 +383,12 @@ _packages_update() {
           # I think it makes sense for now to have
           # a 1-to-1 line-to-package correspondence.
           printf \
-            '\n' \
-            "${_package_name}" >> \
-            "${_db}"
+            '%s\n' \
+            "${_package_name}"
+          #   "${_db}"
         fi
-        _update_no="$(( \
-          _update_no + 1))"
+        _update_no="$((
+          "${_update_no}" + 1))"
       done
     fi
   done
@@ -781,13 +783,16 @@ while \
     v) \
       override_quiet="n" ;;
     h) \
-      _set_overrides && \
+      _set_overrides
       _usage \
         0 ;;
     *)
       if [[ " ${getopts_opts} " != *"${arg}"* ]]; then
+        _msg=(
+          "Invalid argument '${arg}'."
+        )
         _msg_error \
-          "Invalid argument '${arg}'." \
+          "${_msg[*]}" \
           0
         _usage \
           1

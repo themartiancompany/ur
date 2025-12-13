@@ -246,7 +246,7 @@ _package_revisions_get() {
 
 _revision_dir_get() {
   echo \
-    "${_cache_dir}/packages/${_target_publisher}/${_package}/${_revision}"
+    "${_cache_dir}/${_target_publisher}/details/${_package}/${_revision}"
 }
 
 _revision_price_save(){
@@ -337,7 +337,6 @@ _revision_price_get() {
           "${_price}"
       fi
     else
-      echo "ciao"
       _price="$(
         _revision_price_local_get \
           "${_package}" \
