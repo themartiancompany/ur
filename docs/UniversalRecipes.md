@@ -87,17 +87,27 @@ Common switches are:
 
 ## Packaging guidelines
 
-- All package resources must be stored on the
+Ur publishers should make sure to respect the following
+packaging guidelines in order to streamline
+applications public and private security and quality
+assurance reviewing:
+
+- all package resources must be stored on the
   [EVMFS](
-    https://github.com/themartiancompany).
-- Packages should be Gur-compatible; in practice this
-  means recipes directories must contain continuous
-  integration configuration and build files for at least one
-  online continuous integration system (for example
-  Gitlab or Github); displayed platform compatibility
-  on the store, except when set manually, is automatically
-  determined on whether the program package includes those
-  files and builds on one of those services.
+    https://github.com/themartiancompany);
+- packages should be
+  [Gur](
+    https://github.com/themartiancompany/gur)-compatible;
+  in practice this means:
+  - for a package called `package` its repository name on
+    Github/Gitlab should be `package-ur`;
+  - recipes directories must contain continuous
+    integration configuration and build files for at least one
+    online continuous integration system (for example
+    Gitlab or Github); displayed platform compatibility
+    on the store, except when set manually, is automatically
+    determined on whether the program package includes those
+    files and builds on one of those services;
 
 ## Examples
 
