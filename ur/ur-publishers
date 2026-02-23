@@ -461,6 +461,7 @@ _keys_public_check() {
     _msg=() \
     _target
   _key_published="n"
+  _email="${_user_name}@${_target_address}"
   if [[ "${_email}" == "" && \
         "${_key_fingerprint}" == "" ]]; then
     _user_name="*"
@@ -477,7 +478,6 @@ _keys_public_check() {
     _msg_warning \
       "${_msg[*]}"
   fi
-  _email="${_user_name}@${_target_address}"
   _target="${_email}"
   if [[ "${_key_fingerprint}" != "" ]]; then
     _target="${_key_fingerprint}"
