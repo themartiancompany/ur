@@ -465,7 +465,7 @@ _keys_public_check() {
         "${_key_fingerprint}" == "" ]]; then
     _user_name="*"
     _msg=(
-      "no username or fingerprint"
+      "No username or fingerprint"
       "selected, if any"
       "key has already been published"
       "no new one will."
@@ -505,6 +505,13 @@ _keys_public_check() {
     _msg_info \
       "${_msg[*]}"
     _key_published="y"
+  elif [[ "${_available}" == "" ]]; then
+    _msg=(
+      "Key for id '${_target}'"
+      "seemingly unpublished."
+    )
+    _msg_info \
+      "${_msg[*]}"
   fi
 }
 
@@ -516,7 +523,8 @@ _key_publish_check() {
     _full_name="${4}" \
     _gnupg_home="${5}" \
     _gnupg_private="${6}" \
-    _keys_private
+    _keys_private \
+    _msg=()
   if [[ "${_key_publish}" == "y" ]]; then
     _keys_public_check \
       "${_user_name}@${_target_address}" \
@@ -530,6 +538,12 @@ _key_publish_check() {
           "${_full_name}"
       fi
     fi
+  elif [[ "${_key_publish}" == "n" ]]; then
+    _msg=(
+      "Key not marked for publishing."
+    )
+    _msg_info \
+      "${_msg[*]}"
   fi
 }
 
