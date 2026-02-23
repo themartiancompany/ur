@@ -544,7 +544,7 @@ _key_publish_check() {
     )
     _msg_info \
       "${_msg[*]}"
-    _key_published="n"
+    _key_published="y"
   fi
 }
 
@@ -619,7 +619,7 @@ _publisher_list() {
       "Address '${_target_address}'"
       "already registered as a publisher."
     )
-    _msg_warning \
+    echo \
       "${_msg[*]}"
   elif [[ "${_publisher_id}" == "0" ]]; then
     _enrolling_fee="$( \
@@ -693,6 +693,12 @@ _publisher_register() {
   _publisher_list
   if [[ "${_key_published}" == "n" ]]; then
     _key_public_publish
+  else
+    _msg=(
+      "Publisher key already published."
+    )
+    _msg_info \
+      "${_msg[*]}"
   fi
 }
 
