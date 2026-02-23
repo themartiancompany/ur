@@ -528,7 +528,7 @@ _key_publish_check() {
   if [[ "${_key_publish}" == "y" ]]; then
     _keys_public_check \
       "${_gnupg_home}" \
-      "${_user_name}@${_target_address}" \
+      "${_user_name}" \
       "${_key_fingerprint}"
     if [[ "${_key_published}" == "n" ]]; then
       _keys_private_check \
