@@ -544,6 +544,7 @@ _key_publish_check() {
     )
     _msg_info \
       "${_msg[*]}"
+    _key_published="n"
   fi
 }
 
@@ -574,7 +575,7 @@ _key_public_publish() {
     -n
       "${_target_network}"
     -k
-      "${_api_key}"
+      "${_api_key_path}"
     -H
       "${_gnupg_private}"
   )
