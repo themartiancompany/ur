@@ -2,32 +2,34 @@
 
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-#    ----------------------------------------------------------------------
-#    Copyright © 2025  Pellegrino Prevete
+#    ------------------------------------------------------
+#    Copyright © 2025, 2026  Pellegrino Prevete
 #
 #    All rights reserved
-#    ----------------------------------------------------------------------
+#    ------------------------------------------------------
 #
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    This program is free software: you can redistribute
+#    it and/or modify it under the terms of the GNU Affero
+#    General Public License as published by the Free
+#    Software Foundation, either version 3 of the License,
+#    or (at your option) any later version.
 #
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
+#    This program is distributed in the hope that it will
+#    be useful, but WITHOUT ANY WARRANTY; without even the
+#    implied warranty of MERCHANTABILITY or FITNESS FOR A
+#    PARTICULAR PURPOSE. See the GNU Affero General Public
+#    License for more details.
 #
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#    You should have received a copy of the GNU Affero
+#    General Public License along with this program.
+#    If not, see <https://www.gnu.org/licenses/>.
 
-_bin="$( \
+_bin="$(
   dirname \
-    "$( \
-      command \
-        -v \
-	  "env")")"
-_lib="$( \
+    "$(command \
+         -v \
+	 "env")")"
+_lib="$(
   realpath \
     "${_bin}/../lib")"
 _crash_bash="${_lib}/libcrash-bash/crash-bash"
@@ -166,7 +168,7 @@ _packages_local_get() {
            "${_db}")"
     _packages="0"
   elif [[ -e "${_db}" ]]; then
-    _packages="$( \
+    _packages="$(
       wc \
         -l \
         "${_db}" | \
@@ -214,7 +216,7 @@ _pkgbase_new_check() {
     -e
       "^${_pkgbase}$"
   )
-  _new="$( \
+  _new="$(
     cat \
       "${_db}" | \
       grep \
@@ -277,7 +279,7 @@ _packages_update() {
     _msg_info \
       "${_msg[*]}"
     # TODO: select publishers per-repository
-    _publishers+=( $( \
+    _publishers+=( $(
       ur-publishers \
         list)
     )
@@ -297,7 +299,7 @@ _packages_update() {
     _msg_info \
       "${_msg[*]}"
     _db="${_cache_dir}/${_publisher}/packages.db"
-    _packages_remote_total="$( \
+    _packages_remote_total="$(
       evm-contract-call \
         "${_packages_update_call_opts[@]}" \
         "${_ur_address}" \
@@ -310,7 +312,7 @@ _packages_update() {
     )
     _msg_info \
       "${_msg[*]}"
-    _packages_local_total="$( \
+    _packages_local_total="$(
       _packages_local_get \
         "${_publisher}")"
     _msg=(
@@ -346,7 +348,7 @@ _packages_update() {
         )
         _msg_info \
           "${_msg[*]}"
-        _package_name="$( \
+        _package_name="$(
           evm-contract-call \
             "${_packages_update_call_opts[@]}" \
             "${_ur_address}" \
@@ -410,7 +412,7 @@ _packages_results_add() {
   # Or simply add a check to a new version
   # of the contract so they cant directly
   # add spaces. Probably both.
-  _packages+=( $( \
+  _packages+=( $(
     cat \
       "${_db}" | \
       sort \
@@ -440,7 +442,7 @@ _packages_list() {
     _msg_info \
       "${_msg[*]}"
     # TODO: select publishers per-repository
-    _publishers+=( $( \
+    _publishers+=( $(
       ur-publishers \
         list)
     )
@@ -605,7 +607,7 @@ _usage() {
     _usage_text
   _ur="UserRepository"
   _ur_deployment="${deployments_dir}/${_ur}"
-  _networks=( $( \
+  _networks=( $(
     evm-contract-deployment-networks \
       -A \
       "${_ur_deployment}")
@@ -743,7 +745,7 @@ _libevm_global_variables
 _libevm_app_global_variables
 _requirements
 # shellcheck disable=SC2034
-getopts_opts="$( \
+getopts_opts="$(
   printf \
     "%s" \
     "P:" \
