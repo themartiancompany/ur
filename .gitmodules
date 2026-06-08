@@ -1,3 +1,6 @@
 [submodule "data"]
 	path = data
 	url = https://github.com/themartiancompany/ur-data
+[submodule "contracts"]
+	path = contracts
+	url = https://github.com/themartiancompany/ur-contracts

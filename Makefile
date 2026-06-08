@@ -113,78 +113,68 @@ shellcheck:
 
 contracts:
 
-	evm-make \
-	  -v \
-	  -C \
-	    . \
-	  -b \
-	    "$(SOLIDITY_COMPILER_BACKEND)" \
-	  -w \
-	    "$(BUILD_DIR)"
+	git \
+	  submodule \
+	    update \
+	    --init \
+	      "contracts" || \
+	true
+	cd \
+	  "contracts"; \
+	make \
+	  contracts
 
 install-contracts-sources:
 
-	evm-make \
-	  -v \
-	  -C \
-	    . \
-	  -b \
-	    "$(SOLIDITY_COMPILER_BACKEND)" \
-	  -w \
-	    "$(BUILD_DIR)" \
-	  -o \
-	    "$(LIB_DIR)" \
-	  -l \
-	    "n" \
-	  install_sources
+	git \
+	  submodule \
+	    update \
+	    --init \
+	      "contracts" || \
+	true
+	cd \
+	  "contracts"; \
+	make \
+	  install-contracts-sources
 
 install-contracts-deployments-config:
 
-	evm-make \
-	  -v \
-	  -C \
-	    . \
-	  -b \
-	    "$(SOLIDITY_COMPILER_BACKEND)" \
-	  -w \
-	    "$(BUILD_DIR)" \
-	  -o \
-	    "$(LIB_DIR)" \
-	  -l \
-	    "n" \
-	  install_deployments_config
+	git \
+	  submodule \
+	    update \
+	    --init \
+	      "contracts" || \
+	true
+	cd \
+	  "contracts"; \
+	make \
+	  install-contracts-deployments-config
 
 install-contracts-deployments-solc:
 
-	evm-make \
-	  -v \
-	  -C \
-	    . \
-	  -b \
-	    "solc" \
-	  -w \
-	    "$(BUILD_DIR)" \
-	  -o \
-	    "$(LIB_DIR)" \
-	  -l \
-	    "n" \
-	  install_deployments
+	git \
+	  submodule \
+	    update \
+	    --init \
+	      "contracts" || \
+	true
+	cd \
+	  "contracts"; \
+	make \
+	  install-contracts-deployments-solc
 
 install-contracts-deployments-hardhat:
 
-	evm-make \
-	  -v \
-	  -C \
-	    . \
-	  -b \
-	    "hardhat" \
-	  -w \
-	    "$(BUILD_DIR)" \
-	  -o \
-	    "$(LIB_DIR)" \
-	  -l \
-	    "n" \
-	  install_deployments
+	git \
+	  submodule \
+	    update \
+	    --init \
+	      "contracts" || \
+	true
+	cd \
+	  "contracts"; \
+	make \
+	  install-contracts-deployments-hardhat
 
 install-doc:
 
