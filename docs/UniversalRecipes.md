@@ -1,7 +1,7 @@
 [comment]: <> (SPDX-License-Identifier: AGPL-3.0)
 
 [comment]: <> (-------------------------------------------------------------)
-[comment]: <> (Copyright © 2024, 2025  Pellegrino Prevete)
+[comment]: <> (Copyright © 2024, 2025, 2026  Pellegrino Prevete)
 [comment]: <> (All rights reserved)
 [comment]: <> (-------------------------------------------------------------)
 
@@ -75,15 +75,59 @@ system.
 Common switches are:
 
 - `_evmfs` (`bool`):
-    retrieve resources from the EVMFS.
+    Retrieve resources from the EVMFS.
+
 - `_git` (`bool`):
-    whether to use Git to retrieve Git repositories;
+    Whether to use Git to retrieve Git repositories;
     the presence of this switch depends on the fact
     platforms like Github and Gitlab do offer tarballs
     (archive files).
-- `_git_service`:
-    common value for this variable are `gitlab` and
+
+- `_docs` (`bool`):
+     Whether to build the documentation packages.
+
+Common variables are instead
+
+- `_git_service` (`string`):
+    Common value for this variable are `gitlab` and
     `github`.
+
+- `_tag_name` (`string`):
+    Usually either "pkgver" or "commit"
+
+- `_tag` (`string`):
+    By default the value of the `pkgver` or `_commit`
+    variables
+
+- `_ns` (`string`):
+     Namespace name (for Git, EVMFS).
+
+Being Universal Recipes cross-platform,
+variables are used to tell `makepkg`
+which compilers and library to build
+against on a given base operating system.
+This is done usually by using the following
+variables.
+In time some or all of these variables will
+be eventually auto-detected by
+`reallymakepkg`. More documentation
+about runtime variables in DogeOS is available
+in that program's
+[documentation](
+  https://github.com/themartiancompany/reallymakepkg).
+
+- `_libc` (`string`):
+    On GNU/Linux it's usually `glibc`, on Android
+    it's `ndk-sysroot`, on Windows `glibc`.
+
+- `_compiler` (`string`):
+    The C compiler. On GNU/Linux usually `gcc`,
+    on Android `clang` and on Windows `gcc`.
+
+- `_libcompiler` (`string`):
+    The C compiler library. On GNU/Linux usually
+    `gcc-libs` (more recently also `libgcc`), on
+    Android `llvm-libs` and on Windows same as GNU.
 
 ## Packaging guidelines
 
