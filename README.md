@@ -218,7 +218,10 @@ automatically installed with the program.
 man \
   ur
 ```
-
+Documentation is available in the
+[`docs`](
+  docs)
+directory and it's installed together with the program.
 
 ### License
 
