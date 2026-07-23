@@ -218,10 +218,12 @@ automatically installed with the program.
 man \
   ur
 ```
+
 Documentation is available in the
-[`docs`](
-  docs)
-directory and it's installed together with the program.
+`docs` directory, submodule for the
+[`ur-docs`](
+  https://github.com/themartiancompany/ur-docs)
+repository, and it's installed together with the program.
 
 ### License
 
