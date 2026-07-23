@@ -23,8 +23,8 @@
 
 The User Repository (Ur)
 allows one to set for sale
-applications using the
-cryptocurrency system
+applications using the same
+cryptocurrency exchange mechanisms
 underlying the functioning
 of its storage system and protocol, the
 [Ethereum Virtual Machine File System](
