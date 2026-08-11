@@ -36,10 +36,15 @@ MAN_DIR?=$(DATA_DIR)/man
 BUILD_DIR=build
 
 DOC_FILES=\
-  $(wildcard *.rst) \
-  $(wildcard *.md) \
-  $(wildcard docs/*.md)
-SCRIPT_FILES=$(wildcard $(_PROJECT)/*)
+  $(wildcard \
+      *.rst) \
+  $(wildcard \
+      *.md) \
+  $(wildcard \
+      docs/*.md)
+SCRIPT_FILES=\
+  $(wildcard \
+      $(_PROJECT)/*)
 
 _INSTALL_FILE=\
   install \
@@ -54,6 +59,7 @@ _INSTALL_DIR=\
 _INSTALL_CONTRACTS_DEPLOYMENT_FUN:=\
   install-contracts-deployments-$(SOLIDITY_COMPILER_BACKEND)
 _BUILD_TARGETS:=\
+  npm
   contracts
 _BUILD_TARGETS_ALL:=\
   all \
@@ -81,6 +87,7 @@ _INSTALL_DOC_TARGETS:=\
 _INSTALL_TARGETS:=\
   $(_INSTALL_DOC_TARGETS) \
   $(_INSTALL_CONTRACTS_TARGETS) \
+  install-npm \
   install-scripts \
   install-data
 _INSTALL_TARGETS_ALL:=\
@@ -115,6 +122,22 @@ shellcheck:
 	  -s \
 	    bash \
 	  $(SCRIPT_FILES)
+
+npm:
+
+	git \
+	  submodule \
+	    update \
+	    --init \
+	      "$(_PROJECT)/nodejs" || \
+	true
+	cd \
+	  "$(_PROJECT)/nodejs"; \
+	make \
+	  build-npm
+	mv \
+	  "build" \
+	  "../.."
 
 contracts:
 
@@ -207,36 +230,58 @@ install-man:
 	  "man/$(_PROJECT)-purchase.1.rst" \
 	  "$(MAN_DIR)/man1/$(_PROJECT)-purchase.1"
 
+install-npm:
+
+	git \
+	  submodule \
+	    update \
+	    --init \
+	      "$(_PROJECT)/nodejs" || \
+	true
+	cd \
+	  "$(_PROJECT)/nodejs"; \
+	make \
+	  install-npm
+	mv \
+	  "build" \
+	  "../.."
+
 
 install-scripts:
 
+	cd \
+	  "$(_PROJECT)/bash"; \
 	$(_INSTALL_EXE) \
-	  "$(_PROJECT)/$(_PROJECT)" \
-	  "$(BIN_DIR)/$(_PROJECT)"
+	  "$(_PROJECT)" \
+	  "$(BIN_DIR)/$(_PROJECT)"; \
 	$(_INSTALL_EXE) \
-	  "$(_PROJECT)/$(_PROJECT)-package-info" \
-	  "$(BIN_DIR)/$(_PROJECT)-package-info"
+	  "$(_PROJECT)-package-info" \
+	  "$(BIN_DIR)/$(_PROJECT)-package-info"; \
 	$(_INSTALL_EXE) \
-	  "$(_PROJECT)/$(_PROJECT)-packages" \
-	  "$(BIN_DIR)/$(_PROJECT)-packages"
+	  "$(_PROJECT)-packages" \
+	  "$(BIN_DIR)/$(_PROJECT)-packages"; \
 	$(_INSTALL_EXE) \
-	  "$(_PROJECT)/$(_PROJECT)-publishers" \
-	  "$(BIN_DIR)/$(_PROJECT)-publishers"
+	  "$(_PROJECT)-publishers" \
+	  "$(BIN_DIR)/$(_PROJECT)-publishers"; \
 	$(_INSTALL_EXE) \
-	  "$(_PROJECT)/$(_PROJECT)-purchase" \
-	  "$(BIN_DIR)/$(_PROJECT)-purchase"
+	  "$(_PROJECT)-purchase" \
+	  "$(BIN_DIR)/$(_PROJECT)-purchase"; \
+	cd \
+	  "../.."
 	# the following files will have to be removed
+	cd \
+	  "$(_PROJECT)/bash"; \
 	$(_INSTALL_EXE) \
-	  "$(_PROJECT)/gen_key.sh" \
-	  "$(LIB_DIR)/gen_key"
+	  "gen_key.sh" \
+	  "$(LIB_DIR)/gen_key"; \
 	$(_INSTALL_EXE) \
-	  "$(_PROJECT)/build_repo.sh" \
-	  "$(LIB_DIR)/mkrepo"
+	  "build_repo.sh" \
+	  "$(LIB_DIR)/mkrepo"; \
 	$(_INSTALL_EXE) \
-	  "$(_PROJECT)/install_pkg.sh" \
-	  "$(LIB_DIR)/install"
+	  "install_pkg.sh" \
+	  "$(LIB_DIR)/install"; \
 	$(_INSTALL_EXE) \
-	  "$(_PROJECT)/gen_pacman_conf.sh" \
+	  "gen_pacman_conf.sh" \
 	  "$(LIB_DIR)/gen_pacman_conf"
 
 install-data:

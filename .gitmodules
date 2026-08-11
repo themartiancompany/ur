@@ -10,3 +10,6 @@
 [submodule "man"]
 	path = man
 	url = https://github.com/themartiancompany/ur-man
+[submodule "ur/nodejs"]
+	path = ur/nodejs
+	url = https://github.com/themartiancompany/ur.js
