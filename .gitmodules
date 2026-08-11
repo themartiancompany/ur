@@ -7,3 +7,6 @@
 [submodule "docs"]
 	path = docs
 	url = https://github.com/themartiancompany/ur-docs
+[submodule "man"]
+	path = man
+	url = https://github.com/themartiancompany/ur-man
