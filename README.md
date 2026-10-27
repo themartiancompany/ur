@@ -142,6 +142,9 @@ Missing dependencies will be reported to user at runtime
 so if you're looking for a complete list we strongly
 suggest consulting the universal build recipe.
 
+Javascript port initial builds are available on the
+[NPM](
+  https://npmjs.com/package/user-repository).
 
 ### Usage
 
@@ -192,7 +195,7 @@ ur-purchase \
 ```bash
   ur-publishers \
     register \
-    <your_ethereum_address>
+    <your-ethereum-address>
 ```
 
 #### Publishing an application
