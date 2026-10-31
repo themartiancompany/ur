@@ -55,6 +55,9 @@ _INSTALL_EXE=\
 _INSTALL_DIR=\
   install \
     -vdm755
+_MAKE_LINK=\
+  ln \
+    -sv
 
 _INSTALL_CONTRACTS_DEPLOYMENT_FUN:=\
   install-contracts-deployments-$(SOLIDITY_COMPILER_BACKEND)
@@ -266,6 +269,9 @@ install-scripts:
 	$(_INSTALL_EXE) \
 	  "$(_PROJECT)-purchase" \
 	  "$(BIN_DIR)/$(_PROJECT)-purchase"; \
+	$(_MAKE_LINK) \
+	  "$(PREFIX)/bin/$(_PROJECT)" \
+	  "$(BIN_DIR)/sei"; \
 	cd \
 	  "../.."
 	# the following files will have to be removed
