@@ -272,6 +272,9 @@ install-scripts:
 	$(_MAKE_LINK) \
 	  "$(PREFIX)/bin/$(_PROJECT)" \
 	  "$(BIN_DIR)/sei"; \
+	$(_MAKE_LINK) \
+	  "$(PREFIX)/bin/$(_PROJECT)" \
+	  "$(BIN_DIR)/6"; \
 	cd \
 	  "../.."
 	# the following files will have to be removed
